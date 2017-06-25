@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="lz4">
+      <UniqueIdentifier>{6ba0bc11-af2a-452b-ac16-3f5660b7fc06}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lz4\lz4.c">
+      <Filter>lz4</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lz4\lz4.h">
+      <Filter>lz4</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
