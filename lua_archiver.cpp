@@ -37,30 +37,32 @@ lua_archiver::lua_archiver(size_t size)
 {
 	m_buffer_size = size;
 	m_lz_threshold = size;
-	m_ar_buffer = new unsigned char[m_buffer_size];
-	m_lz_buffer = new unsigned char[m_buffer_size];
+}
+
+lua_archiver::lua_archiver(size_t size, size_t lz_size)
+{
+	m_buffer_size = size;
+	m_lz_threshold = lz_size;
 }
 
 lua_archiver::~lua_archiver()
 {
-	delete[] m_ar_buffer;
-	delete[] m_lz_buffer;
+	free_buffer();
 }
 
 void lua_archiver::set_buffer_size(size_t size)
 {
-	if (size > 0)
-	{
-		delete[] m_ar_buffer;
-		m_ar_buffer = new unsigned char[size];
-		delete[] m_lz_buffer;
-		m_lz_buffer = new unsigned char[size];
-		m_buffer_size = size;
-	}
+	m_buffer_size = size;
+	free_buffer();
 }
 
 void* lua_archiver::save(size_t* data_len, lua_State* L, int first, int last)
 {
+	first = normal_index(L, first);
+	last = normal_index(L, last);
+	if (last < first || !alloc_buffer())
+		return nullptr;
+
 	*m_ar_buffer = 'x';
 	m_begin = m_ar_buffer;
 	m_end = m_ar_buffer + m_buffer_size;
@@ -90,10 +92,10 @@ void* lua_archiver::save(size_t* data_len, lua_State* L, int first, int last)
 	return m_begin;
 }
 
-bool lua_archiver::load(int* param_count, lua_State* L, void* data, size_t data_len)
+int lua_archiver::load(lua_State* L, const void* data, size_t data_len)
 {
-	if (data_len == 0)
-		return false;
+	if (data_len == 0 || !alloc_buffer())
+		return 0;
 
 	m_pos = (unsigned char*)data;
 	m_end = (unsigned char*)data + data_len;
@@ -103,14 +105,14 @@ bool lua_archiver::load(int* param_count, lua_State* L, void* data, size_t data_
 		m_pos++;
 		int len = LZ4_decompress_safe((const char*)m_pos, (char*)m_lz_buffer, (int)data_len - 1, (int)m_buffer_size);
 		if (len <= 0)
-			return false;
+			return 0;
 		m_pos = m_lz_buffer;
 		m_end = m_lz_buffer + len;
 	}
 	else
 	{
 		if (*m_pos != 'x')
-			return false;
+			return 0;
 		m_pos++;
 	}
 
@@ -124,12 +126,40 @@ bool lua_archiver::load(int* param_count, lua_State* L, void* data, size_t data_
 		if (!load_value(L))
 		{
 			lua_settop(L, top);
-			return false;
+			return 0;
 		}
 		count++;
 	}
-	*param_count = count;
-	return true;
+	return count;
+}
+
+bool lua_archiver::alloc_buffer()
+{
+	if (m_ar_buffer == nullptr)
+	{
+		m_ar_buffer = new unsigned char[m_buffer_size];
+	}
+
+	if (m_lz_buffer == nullptr)
+	{
+		m_lz_buffer = new unsigned char[m_buffer_size];
+	}
+	return m_ar_buffer != nullptr && m_lz_buffer != nullptr;
+}
+
+void lua_archiver::free_buffer()
+{
+	if (m_ar_buffer)
+	{
+		delete[] m_ar_buffer;
+		m_ar_buffer = nullptr;
+	}
+
+	if (m_lz_buffer)
+	{
+		delete[] m_lz_buffer;
+		m_lz_buffer = nullptr;
+	}
 }
 
 bool lua_archiver::save_value(lua_State* L, int idx)

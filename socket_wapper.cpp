@@ -352,11 +352,11 @@ void lua_socket_node::on_call(char* data, size_t data_len)
     if (!lua_get_object_function(m_lvm, this, "on_call"))
         return;
 
-    int param_count = 0;
-    if (!m_archiver->load(&param_count, m_lvm, (BYTE*)data, data_len))
-        return;
-
-    lua_call_function(err, m_lvm, param_count, 0);
+    int param_count = m_archiver->load(m_lvm, data, data_len);
+	if (param_count == 0)
+		return;
+	
+	lua_call_function(err, m_lvm, param_count, 0);
 }
 
 
