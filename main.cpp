@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** repository: https://github.com/trumanzhao/luabus
 ** trumanzhao, 2017-06-25, trumanzhao@foxmail.com
 */
