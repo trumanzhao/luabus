@@ -60,7 +60,7 @@ def sign_file(path):
     print("加签名: %s" % path);
     io.open(path, "w", encoding="utf-8").writelines(lines);
 
-root = ".";
+root = "src";
 items = os.listdir(root);
 for item in items:
     path = os.path.join(root, item);

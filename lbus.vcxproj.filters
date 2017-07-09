@@ -4,15 +4,96 @@
     <Filter Include="lz4">
       <UniqueIdentifier>{6ba0bc11-af2a-452b-ac16-3f5660b7fc06}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{82a9017d-0dfc-429b-84c2-ba0bcfbe2627}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lz4\lz4.c">
       <Filter>lz4</Filter>
     </ClCompile>
+    <ClCompile Include="src\lua_socket_mgr.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lua_socket_node.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\luna.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\socket_helper.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\socket_listener.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\socket_mgr.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\socket_mgr_impl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\socket_router.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\socket_stream.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tools.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\var_int.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lua_archiver.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lz4\lz4.h">
       <Filter>lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lua_archiver.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lua_socket_mgr.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lua_socket_node.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\luna.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\socket_helper.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\socket_listener.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\socket_mgr.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\socket_mgr_impl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\socket_router.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\socket_stream.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\var_int.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\io_buffer.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

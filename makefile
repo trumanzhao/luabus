@@ -4,12 +4,12 @@ target_type = dynamic_shared
 define_macros =
 include_dir = .
 # 依赖库列表,空格分开
-lib = 
+lib =
 # 最终产品目录:
 # 注意,只是对可执行文件和动态库而言,静态库忽略此项
 target_dir = .
 # 源码目录,注意不会递归
-src_dir_list = . lz4
+src_dir_list = src lz4
 # 依赖库目录,多个目录用空格分开:
 lib_dir =
 # 本工程(如果)输出.a,.so文件的目录,比如: ./lib
@@ -17,7 +17,7 @@ lib_out =
 
 CC = gcc
 CXX = g++
-CFLAGS = 
+CFLAGS =
 
 OS := $(shell uname)
 

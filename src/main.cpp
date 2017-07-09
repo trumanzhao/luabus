@@ -3,7 +3,7 @@
 ** trumanzhao, 2017-06-25, trumanzhao@foxmail.com
 */
 
-#include "socket_wapper.h"
+#include "lua_socket_mgr.h"
 
 int create_socket_mgr(lua_State* L)
 {

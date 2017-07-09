@@ -13,14 +13,22 @@
 
 uint32_t get_group_idx(uint32_t service_id) { return  (service_id >> 16) & 0xff; }
 
-void socket_router::update(uint32_t service_id, uint32_t token)
+void socket_router::update(uint32_t service_id, uint32_t token, bool is_master)
 {
     uint32_t group_idx = get_group_idx(service_id);
     auto& group = m_groups[group_idx];
+
+    if (is_master)
+    {
+        group.master = token;
+    }
+
     auto& nodes = group.nodes;
     auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](auto& node, uint32_t id) { return node.id < id; });
     if (it != nodes.end() && it->id == service_id)
     {
+        if (it->token == group.master && !is_master)
+            group.master = 0;
         it->token = token;
     }
     else
@@ -32,12 +40,6 @@ void socket_router::update(uint32_t service_id, uint32_t token)
     }
 }
 
-void socket_router::set_master(uint8_t group_idx, uint32_t token)
-{
-    auto& group = m_groups[group_idx];
-    group.master = token;
-}
-
 void socket_router::erase(uint32_t service_id)
 {
     uint32_t group_idx = get_group_idx(service_id);
@@ -46,16 +48,19 @@ void socket_router::erase(uint32_t service_id)
     auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](auto& node, uint32_t id) { return node.id < id; });
     if (it != nodes.end() && it->id == service_id)
     {
+        if (it->token == group.master)
+            group.master = 0;
         nodes.erase(it);
     }
 }
 
-void socket_router::forward_target(char* data, size_t data_len)
+void socket_router::do_forward_target(char* data, size_t data_len)
 {
     uint64_t target_id64 = 0;
     size_t len = decode_u64(&target_id64, (BYTE*)data, data_len);
     if (len == 0)
         return;
+
     data += len;
     data_len -= len;
 
@@ -74,12 +79,13 @@ void socket_router::forward_target(char* data, size_t data_len)
     m_mgr->sendv(it->token, items, _countof(items));
 }
 
-void socket_router::forward_master(char* data, size_t data_len)
+void socket_router::do_forward_master(char* data, size_t data_len)
 {
     uint64_t group_idx = 0;
     size_t len = decode_u64(&group_idx, (BYTE*)data, data_len);
     if (len == 0 || group_idx >= m_groups.size())
         return;
+
     data += len;
     data_len -= len;
 
@@ -94,12 +100,13 @@ void socket_router::forward_master(char* data, size_t data_len)
     m_mgr->sendv(token, items, _countof(items));
 }
 
-void socket_router::forward_random(char* data, size_t data_len)
+void socket_router::do_forward_random(char* data, size_t data_len)
 {
     uint64_t group_idx = 0;
     size_t len = decode_u64(&group_idx, (BYTE*)data, data_len);
     if (len == 0 || group_idx >= m_groups.size())
         return;
+
     data += len;
     data_len -= len;
 
@@ -125,12 +132,13 @@ void socket_router::forward_random(char* data, size_t data_len)
     }
 }
 
-void socket_router::forward_broadcast(char* data, size_t data_len)
+void socket_router::do_forward_broadcast(char* data, size_t data_len)
 {
     uint64_t group_idx = 0;
     size_t len = decode_u64(&group_idx, (BYTE*)data, data_len);
     if (len == 0 || group_idx >= m_groups.size())
         return;
+
     data += len;
     data_len -= len;
 
@@ -150,12 +158,13 @@ void socket_router::forward_broadcast(char* data, size_t data_len)
     }
 }
 
-void socket_router::forward_hash(char* data, size_t data_len)
+void socket_router::do_forward_hash(char* data, size_t data_len)
 {
     uint64_t group_idx = 0;
     size_t len = decode_u64(&group_idx, (BYTE*)data, data_len);
     if (len == 0 || group_idx >= m_groups.size())
         return;
+
     data += len;
     data_len -= len;
 
@@ -163,6 +172,7 @@ void socket_router::forward_hash(char* data, size_t data_len)
     len = decode_u64(&hash, (BYTE*)data, data_len);
     if (len == 0)
         return;
+
     data += len;
     data_len -= len;
 
