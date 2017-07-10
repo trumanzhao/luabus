@@ -52,7 +52,7 @@ int lua_socket_mgr::listen(lua_State* L)
 
     auto listener = new lua_socket_node(token, m_lvm, m_mgr, m_archiver, m_router);
     lua_push_object(L, listener);
-    lua_pushstring(L, "OK");
+    lua_pushstring(L, "ok");
     return 2;
 }
 
@@ -78,7 +78,7 @@ int lua_socket_mgr::connect(lua_State* L)
 
     auto stream = new lua_socket_node(token, m_lvm, m_mgr, m_archiver, m_router);
     lua_push_object(L, stream);
-    lua_pushstring(L, "OK");
+    lua_pushstring(L, "ok");
     return 2;
 }
 
