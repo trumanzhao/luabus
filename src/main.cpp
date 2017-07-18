@@ -19,7 +19,13 @@ int create_socket_mgr(lua_State* L)
     return 1;
 }
 
-extern "C" int luaopen_lbus(lua_State* L)
+#ifdef _MSC_VER
+#define LBUS_API _declspec(dllexport)
+#else
+#define LBUS_API 
+#endif
+
+extern "C" int LBUS_API luaopen_lbus(lua_State* L)
 {
     lua_newtable(L);
     lua_set_table_function(L, -1, "create_socket_mgr", create_socket_mgr);
