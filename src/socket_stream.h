@@ -50,8 +50,8 @@ struct socket_stream : public socket_object
 
     socket_mgr_impl* m_mgr = nullptr;
     socket_t m_socket = INVALID_SOCKET;
-    std::unique_ptr<io_buffer> m_recv_buffer = std::make_unique<io_buffer>();
-    std::unique_ptr<io_buffer> m_send_buffer = std::make_unique<io_buffer>();
+    std::shared_ptr<io_buffer> m_recv_buffer = std::make_shared<io_buffer>();
+    std::shared_ptr<io_buffer> m_send_buffer = std::make_shared<io_buffer>();
 
     std::string m_node_name;
     std::string m_service_name;

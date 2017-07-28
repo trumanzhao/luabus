@@ -24,7 +24,7 @@ void socket_router::update(uint32_t service_id, uint32_t token, bool is_master)
     }
 
     auto& nodes = group.nodes;
-    auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](auto& node, uint32_t id) { return node.id < id; });
+    auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](service_node& node, uint32_t id) { return node.id < id; });
     if (it != nodes.end() && it->id == service_id)
     {
         if (it->token == group.master && !is_master)
@@ -45,7 +45,7 @@ void socket_router::erase(uint32_t service_id)
     uint32_t group_idx = get_group_idx(service_id);
     auto& group = m_groups[group_idx];
     auto& nodes = group.nodes;
-    auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](auto& node, uint32_t id) { return node.id < id; });
+    auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](service_node& node, uint32_t id) { return node.id < id; });
     if (it != nodes.end() && it->id == service_id)
     {
         if (it->token == group.master)
@@ -68,7 +68,7 @@ void socket_router::do_forward_target(char* data, size_t data_len)
     uint32_t group_idx = get_group_idx(target_id);
     auto& group = m_groups[group_idx];
     auto& nodes = group.nodes;
-    auto it = std::lower_bound(nodes.begin(), nodes.end(), target_id, [](auto& node, uint32_t id) { return node.id < id; });
+    auto it = std::lower_bound(nodes.begin(), nodes.end(), target_id, [](service_node& node, uint32_t id) { return node.id < id; });
     if (it == nodes.end() || it->id != target_id)
         return;
 

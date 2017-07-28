@@ -71,14 +71,25 @@ inline int lua_normal_index(lua_State* L, int idx)
 using lua_global_function = std::function<int(lua_State*)>;
 using lua_object_function = std::function<int(void*, lua_State*)>;
 
+// luna_sequence => c++14 std::index_sequence
+template <size_t... ints>
+struct luna_sequence { };
+
+// make_luna_sequence => c++14 std::make_index_sequence
+template <size_t size, size_t... ints>
+struct make_luna_sequence : make_luna_sequence<size - 1, size - 1, ints...> { };
+
+template <size_t... ints>
+struct make_luna_sequence<0, ints...> : luna_sequence<ints...> { };
+
 template<size_t... Integers, typename return_type, typename... arg_types>
-return_type call_helper(lua_State* L, return_type(*func)(arg_types...), std::index_sequence<Integers...>&&)
+return_type call_helper(lua_State* L, return_type(*func)(arg_types...), luna_sequence<Integers...>&&)
 {
     return (*func)(lua_to_native<arg_types>(L, Integers + 1)...);
 }
 
 template<size_t... Integers, typename return_type, typename class_type, typename... arg_types>
-return_type call_helper(lua_State* L, class_type* obj, return_type(class_type::*func)(arg_types...), std::index_sequence<Integers...>&&)
+return_type call_helper(lua_State* L, class_type* obj, return_type(class_type::*func)(arg_types...), luna_sequence<Integers...>&&)
 {
     return (obj->*func)(lua_to_native<arg_types>(L, Integers + 1)...);
 }
@@ -88,7 +99,7 @@ lua_global_function lua_adapter(return_type(*func)(arg_types...))
 {
     return [=](lua_State* L)
     {
-        native_to_lua(L, call_helper(L, func, std::make_index_sequence<sizeof...(arg_types)>()));
+        native_to_lua(L, call_helper(L, func, make_luna_sequence<sizeof...(arg_types)>()));
         return 1;
     };
 }
@@ -98,7 +109,7 @@ lua_global_function lua_adapter(void(*func)(arg_types...))
 {
     return [=](lua_State* L)
     {
-        call_helper(L, func, std::make_index_sequence<sizeof...(arg_types)>());
+        call_helper(L, func, make_luna_sequence<sizeof...(arg_types)>());
         return 0;
     };
 }
@@ -114,7 +125,7 @@ lua_object_function lua_adapter(return_type(T::*func)(arg_types...))
 {
     return [=](void* obj, lua_State* L)
     {
-        native_to_lua(L, call_helper(L, (T*)obj, func, std::make_index_sequence<sizeof...(arg_types)>()));
+        native_to_lua(L, call_helper(L, (T*)obj, func, make_luna_sequence<sizeof...(arg_types)>()));
         return 1;
     };
 }
@@ -124,7 +135,7 @@ lua_object_function lua_adapter(void(T::*func)(arg_types...))
 {
     return [=](void* obj, lua_State* L)
     {
-        call_helper(L, (T*)obj, func, std::make_index_sequence<sizeof...(arg_types)>());
+        call_helper(L, (T*)obj, func, make_luna_sequence<sizeof...(arg_types)>());
         return 0;
     };
 }
@@ -429,9 +440,6 @@ void lua_register_class(lua_State* L, T* obj)
 template <typename T>
 void lua_push_object(lua_State* L, T obj)
 {
-    // 禁止将对象的父类指针push到lua中去,以免造成指针转换的低级错误(在lua_push_object时).
-    // 如果自信不会犯这种错误,并且懒得写final,可以将下一行注释掉:)
-    static_assert(std::is_final<typename std::remove_pointer<T>::type>::value, "T should be declared final !");
     if (obj == nullptr)
     {
         lua_pushnil(L);
@@ -523,19 +531,18 @@ template <typename T>
 T lua_to_object(lua_State* L, int idx)
 {
     static_assert(has_meta_data<typename std::remove_pointer<T>::type>::value, "T should be declared export !");
-    static_assert(std::is_final<typename std::remove_pointer<T>::type>::value, "T should be declared final !");
     T obj = nullptr;
 
 	idx = lua_normal_index(L, idx);
 
-	if (lua_istable(L, idx))
-	{
+    if (lua_istable(L, idx))
+    {
 		lua_pushstring(L, "__pointer__");
 		lua_rawget(L, idx);
-		obj = (T)lua_touserdata(L, -1);
-		lua_pop(L, 1);
-	}
-	return obj;
+        obj = (T)lua_touserdata(L, -1);
+        lua_pop(L, 1);
+     }
+     return obj;
 }
 
 #define DECLARE_LUA_CLASS(ClassName)    \
@@ -656,7 +663,7 @@ bool lua_get_object_function(lua_State* L, T* object, const char function[])
 }
 
 template<size_t... Integers, typename... var_types>
-void lua_to_native_mutil(lua_State* L, std::tuple<var_types&...>& vars, std::index_sequence<Integers...>&&)
+void lua_to_native_mutil(lua_State* L, std::tuple<var_types&...>& vars, luna_sequence<Integers...>&&)
 {
     int _[] = { 0, (std::get<Integers>(vars) = lua_to_native<var_types>(L, (int)Integers - sizeof...(Integers)), 0)... };
 }
@@ -669,7 +676,7 @@ bool lua_call_function(lua_State* L, std::string* err, std::tuple<ret_types&...>
     int _[] = { 0, (native_to_lua(L, args), 0)... };
     if (!lua_call_function(L, err, sizeof...(arg_types), sizeof...(ret_types)))
         return false;
-    lua_to_native_mutil(L, rets, std::make_index_sequence<sizeof...(ret_types)>());
+    lua_to_native_mutil(L, rets, make_luna_sequence<sizeof...(ret_types)>());
     return true;
 }
 
@@ -680,7 +687,7 @@ bool lua_call_table_function(lua_State* L, std::string* err, const char table[],
     int _[] = { 0, (native_to_lua(L, args), 0)... };
     if (!lua_call_function(L, err, sizeof...(arg_types), sizeof...(ret_types)))
         return false;
-    lua_to_native_mutil(L, rets, std::make_index_sequence<sizeof...(ret_types)>());
+    lua_to_native_mutil(L, rets, make_luna_sequence<sizeof...(ret_types)>());
     return true;
 }
 
@@ -691,7 +698,7 @@ bool lua_call_object_function(lua_State* L, std::string* err, T* o, const char f
     int _[] = { 0, (native_to_lua(L, args), 0)... };
     if (!lua_call_function(L, err, sizeof...(arg_types), sizeof...(ret_types)))
         return false;
-    lua_to_native_mutil(L, rets, std::make_index_sequence<sizeof...(ret_types)>());
+    lua_to_native_mutil(L, rets, make_luna_sequence<sizeof...(ret_types)>());
     return true;
 }
 
@@ -702,7 +709,7 @@ bool lua_call_global_function(lua_State* L, std::string* err, const char functio
     int _[] = { 0, (native_to_lua(L, args), 0)... };
     if (!lua_call_function(L, err, sizeof...(arg_types), sizeof...(ret_types)))
         return false;
-    lua_to_native_mutil(L, rets, std::make_index_sequence<sizeof...(ret_types)>());
+    lua_to_native_mutil(L, rets, make_luna_sequence<sizeof...(ret_types)>());
     return true;
 }
 

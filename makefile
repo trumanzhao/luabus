@@ -29,7 +29,7 @@ ifeq ($(OS), Darwin)
 CFLAGS += -DLUA_USE_MACOSX
 endif
 
-CXXFLAGS = $(CFLAGS) -Wno-invalid-offsetof -Wno-deprecated-declarations -std=c++1y
+CXXFLAGS = $(CFLAGS) -Wno-invalid-offsetof -Wno-deprecated-declarations -std=c++11
 
 #----------------- 下面部分通常不用改 --------------------------
 
