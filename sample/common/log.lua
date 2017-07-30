@@ -1,7 +1,9 @@
+require("lfs");
+
 -- log_file = nil;
-log_filename = log_filename or "out";
-log_line_count = log_line_count or 0;
-log_max_line = log_max_line or 100000;
+local log_filename = nil;
+local log_line_count = 0;
+local log_max_line = 100000;
 
 function _G.log_open(filename, max_line)
     log_filename = filename;
@@ -15,51 +17,52 @@ function _G.log_close()
     end
 end
 
-function log_write(line)
-    if log_line_count >= log_max_line then
-        log_file:close();
-        log_file = nil;
-        log_line_count = 0;
+last_dir = last_dir or "";
+local function log_write(cate, fmt, ...)
+    local now = os.time();
+    local time = os.date("%H:%M:%S", now);
+    fmt = string.format("%s/%s\t%s\n", time, cate, tostring(fmt));
+    local ok, line = pcall(string.format, fmt, ...);
+    if not ok then
+        line = fmt.."... ...";
     end
 
-    if log_file == nil then
-        local date = os.date("*t", os.time());
-        local filename = string.format("%s_%d_%02d%02d_%02d%02d%02d.log", log_filename, date.year, date.month, date.day, date.hour, date.min, date.sec);
+    local log_dir = os.date("log/%m%d", now);
+    if log_file == nil or log_line_count >= log_max_line or log_dir ~= last_dir then
+        if log_file then
+            log_file:close();
+        end
+        lfs.mkdir("log");
+        lfs.mkdir(log_dir);
+        last_dir = log_dir;
+        time = os.date("%H_%M_%S", now);
+        local filename = string.format("%s/%s_%s.log", log_dir, log_filename or "out", time);
         log_file = io.open(filename, "w");
         if log_file == nil then
             return;
         end
     end
 
-    log_file:write(line);
+    if not log_file:write(line) then
+        log_file:close();
+        log_file = nil;
+        log_line_count = 0;
+        return;
+    end
+
     log_file:flush();
     log_line_count = log_line_count + 1;
 end
 
 function _G.log_debug(fmt, ...)
-    local line = string.format(fmt, ...);
-    if line == nil then
-        return;
-    end
-
-    log_write(string.format("DEBUG:\t%s\n", line));
+    log_write("DEBUG", fmt, ...);
 end
 
-
 function _G.log_info(fmt, ...)
-    local line = string.format(fmt, ...);
-    if line == nil then
-        return;
-    end
-
-    log_write(string.format("INFO:\t%s\n", line));
+    log_write("INFO", fmt, ...);
 end
 
 function _G.log_err(fmt, ...)
-    local line = string.format(fmt, ...);
-    if line == nil then
-        return;
-    end
-
-    log_write(string.format("ERROR:\t%s\n", line));
+    log_write("ERROR", fmt, ...);
 end
+
