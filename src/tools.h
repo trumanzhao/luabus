@@ -25,6 +25,7 @@ using uint64_t = unsigned long long;
 using BYTE = unsigned char;
 #endif
 
+#include <string.h>
 #include <string>
 #include <chrono>
 #include <thread>
