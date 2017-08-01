@@ -41,7 +41,6 @@ private:
 
     uint32_t m_token = 0;
     lua_State* m_lvm = nullptr;
-	bool m_enable_route = false;
     std::string m_ip;
     std::shared_ptr<socket_mgr> m_mgr;
     std::shared_ptr<lua_archiver> m_archiver;

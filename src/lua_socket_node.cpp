@@ -20,7 +20,6 @@ EXPORT_LUA_FUNCTION(set_recv_cache)
 EXPORT_LUA_FUNCTION(set_timeout)
 EXPORT_LUA_STD_STR_AS_R(m_ip, "ip")
 EXPORT_LUA_INT_AS_R(m_token, "token")
-EXPORT_LUA_BOOL(m_enable_route)
 EXPORT_CLASS_END()
 
 lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<lua_archiver>& ar, std::shared_ptr<socket_router> router)
@@ -200,12 +199,6 @@ void lua_socket_node::close()
 
 void lua_socket_node::on_recv(char* data, size_t data_len)
 {
-	if (!m_enable_route)
-	{
-        on_call(data, data_len);
-		return;
-	}
-
     uint64_t msg = 0;
     size_t len = decode_u64(&msg, (BYTE*)data, data_len);
     if (len == 0)
