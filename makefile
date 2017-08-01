@@ -2,14 +2,14 @@ product = lbus
 # execute, dynamic_shared, static_shared
 target_type = dynamic_shared
 define_macros =
-include_dir = .
+include_dir = include
 # 依赖库列表,空格分开
 lib =
 # 最终产品目录:
 # 注意,只是对可执行文件和动态库而言,静态库忽略此项
 target_dir = .
 # 源码目录,注意不会递归
-src_dir_list = src lz4
+src_dir_list = src
 # 依赖库目录,多个目录用空格分开:
 lib_dir =
 # 本工程(如果)输出.a,.so文件的目录,比如: ./lib
@@ -29,7 +29,7 @@ ifeq ($(OS), Darwin)
 CFLAGS += -DLUA_USE_MACOSX
 endif
 
-CXXFLAGS = $(CFLAGS) -Wno-invalid-offsetof -Wno-deprecated-declarations -std=c++11
+CXXFLAGS = $(CFLAGS) -Wno-invalid-offsetof -Wno-deprecated-declarations -std=c++1y
 
 #----------------- 下面部分通常不用改 --------------------------
 
