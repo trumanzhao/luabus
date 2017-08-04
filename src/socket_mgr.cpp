@@ -38,7 +38,7 @@ bool socket_mgr::setup(int max_connection)
     return m_impl->setup(max_connection);
 }
 
-void socket_mgr::wait(int timeout){ m_impl->wait(timeout); }
+int socket_mgr::wait(int timeout){ return m_impl->wait(timeout); }
 int socket_mgr::listen(std::string& err, const char ip[], int port){ return m_impl->listen(err, ip, port); }
 int socket_mgr::connect(std::string& err, const char node_name[], const char service_name[]){ return m_impl->connect(err, node_name, service_name); }
 void socket_mgr::set_send_cache(uint32_t token, size_t size){ m_impl->set_send_cache(token, size); }

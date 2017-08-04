@@ -142,7 +142,7 @@ Exit0:
 }
 #endif
 
-void socket_mgr_impl::wait(int timeout)
+int socket_mgr_impl::wait(int timeout)
 {
 #ifdef _MSC_VER
     ULONG event_count = 0;
@@ -202,6 +202,7 @@ void socket_mgr_impl::wait(int timeout)
             ++it;
         }
     }
+	return (int)event_count;
 }
 
 int socket_mgr_impl::listen(std::string& err, const char ip[], int port)

@@ -17,7 +17,7 @@ struct lua_socket_mgr final
 public:
     ~lua_socket_mgr();
     bool setup(lua_State* L, int max_fd);
-    void wait(int ms) { m_mgr->wait(ms); }
+    int wait(int ms) { return m_mgr->wait(ms); }
     int listen(lua_State* L);
     int connect(lua_State* L);
     void set_package_size(size_t size);

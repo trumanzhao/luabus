@@ -56,7 +56,7 @@ public:
     bool get_socket_funcs();
 #endif
 
-    void wait(int timout);
+    int wait(int timout);
 
     int listen(std::string& err, const char ip[], int port);
     int connect(std::string& err, const char node_name[], const char service_name[]);
