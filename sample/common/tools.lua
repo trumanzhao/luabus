@@ -1,4 +1,4 @@
-function string_split(str, token)
+function split_string(str, token)
     local t = {};
     while #str > 0 do
         local pos = str:find(token);

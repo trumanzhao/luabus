@@ -18,9 +18,9 @@ function setup(service_name)
 
     hive.id = make_service_id(group_id, args.index or 1);
 
-    local addrs = string_split(args.routers or "127.0.0.1:9000", ";");
+    local addrs = split_string(args.routers or "127.0.0.1:9000", ";");
     for i, addr in ipairs(addrs) do
-        local tab = string_split(addr, ":");
+        local tab = split_string(addr, ":");
         local ip, port = table.unpack(tab);
         routers[#routers + 1] = {ip=ip, port=port, next_connect_time=0};
     end

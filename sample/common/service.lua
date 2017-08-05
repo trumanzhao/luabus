@@ -18,7 +18,7 @@ service_groups =
 service_names =
 {
     [service_groups.router] = "router",
-    [service_groups.gamsvr] = "gamesvr",
+    [service_groups.gamesvr] = "gamesvr",
     [service_groups.gateway] = "gateway",
     [service_groups.dbagent] = "dbagent",
     [service_groups.indexsvr] = "indexsvr",

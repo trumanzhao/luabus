@@ -19,7 +19,7 @@ def run_app_one(app):
 
     if app == "router":
         cmd += " --listen=127.0.0.1:9000";
-    else
+    else:
         cmd += " --routers=127.0.0.1:9000";
 
     if app == "gateway":
@@ -32,7 +32,7 @@ def run_app_one(app):
 
 apps = get_target_apps();
 for app in apps:
-    pids = mgr.find_pid_list(app);
+    pids = service.find_pid_list(app);
     for pid in pids:
         cmd = "kill -9 %d" % pid;
         print(cmd);
