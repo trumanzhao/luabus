@@ -43,6 +43,11 @@ local function log_write(cate, fmt, ...)
         end
     end
 
+    local args = hive.args;
+    if not args or not args.daemon then
+        io.stdout:write(line);
+    end
+
     if not log_file:write(line) then
         log_file:close();
         log_file = nil;

@@ -50,7 +50,7 @@ collectgarbage("stop");
 hive.run = function()
     hive.now = os.time();
 
-    local count = socket_mgr.wait();
+    local count = socket_mgr.wait(10);
     local cost_time = hive.get_time_ms() - hive.start_time;
     if 100 * hive.frame <  cost_time  then
         hive.frame = hive.frame + 1;
@@ -59,8 +59,6 @@ hive.run = function()
             log_err("on_tick error: %s", err);
         end
         collectgarbage("collect");
-    elseif count == 0 then
-        hive.sleep_ms(5);
     end
 
     if check_quit_signal() then
@@ -76,10 +74,6 @@ function on_tick(frame)
 
     router_mgr.update(frame);
     session_mgr.update(frame);
-
-    if frame % 15 == 0 then
-        print(frame);
-    end
 end
 
 function c2s.hello(ss, txt)
