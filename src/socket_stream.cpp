@@ -102,7 +102,7 @@ bool socket_stream::update(int64_t now)
 #endif
     }
 
-    if (m_timeout >= 0 && now - m_alive_time > m_timeout)
+    if (m_timeout > 0 && now - m_alive_time > m_timeout)
     {
         call_error("timeout");
         return false;
