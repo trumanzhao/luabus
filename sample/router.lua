@@ -4,6 +4,7 @@ require("common/tree");
 require("common/alt_getopt");
 require("common/signal");
 require("common/tools");
+require("common/service");
 lbus = require("lbus");
 
 _G.s2s = s2s or {};
@@ -13,7 +14,7 @@ groups = groups or {};
 if not hive.init_flag then
     local long_opts = 
     {
-        listen=1, --listen addr for servers: 127.0.0.1:5000
+        listen=1, --listen addr for servers: 127.0.0.1:7070
         index=1, --instance index
         daemon=0, 
         log=1, --log file: router.1
@@ -37,7 +38,7 @@ if not hive.init_flag then
     hive.start_time = hive.start_time or hive.get_time_ms();
     hive.frame = hive.frame or 0;
 
-    local addr = args.listen or "127.0.0.1:6000";
+    local addr = args.listen or "127.0.0.1:7070";
     local tokens = split_string(addr, ":");
     local ip, port = table.unpack(tokens);
     listener = socket_mgr.listen(ip, port);
@@ -50,7 +51,7 @@ if not hive.init_flag then
 end
 
 listener.on_accept = function(ss)
-    log_info("new connection ...");
+    log_info("new connection, token=%s", ss.token);
 
     ss.set_timeout(1000 * service_timeout_value);
     sessions[ss.token] = ss;
@@ -75,7 +76,7 @@ listener.on_accept = function(ss)
     end
 
     ss.on_error = function(err)
-        log_err("connection lost: %s", err);
+        log_err("%s lost: %s", ss.name or ss.token, err);
         if ss.id then
             --要实现固定哈希的话,可以把这里的nil改为0
             socket_mgr.map_token(ss.id, nil);
@@ -97,6 +98,7 @@ function s2s.register(ss, id)
         ss.id = id;
         ss.name = service_id2name(id);
         socket_mgr.map_token(id, ss.token);
+        log_info("register service: %s", ss.name);
     end
 end
 
@@ -132,13 +134,13 @@ function on_tick(frame)
 end
 
 --lease_time: master租约时间戳,可以为nil
-function s2s.on_heartbeat(ss, lease_time)
+function s2s.heartbeat(ss, lease_time)
     local idx = get_service_group(ss.id);
     local group = groups[idx] or {lease_time=0, master=0, name=service_names[idx]};
 
     groups[idx] = group;
 
-    ss.call("on_heartbeat");
+    ss.call("heartbeat");
 
     if lease_time and lease_time > group.lease_time then
         group.lease_time = lease_time;

@@ -116,9 +116,9 @@ private:
 
     uint32_t new_token()
     {
-        while (m_token == 0 || m_objects.find(m_token) != m_objects.end())
+        while (++m_token == 0 || m_objects.find(m_token) != m_objects.end())
         {
-            ++m_token;
+            // nothing ...
         }
         return m_token;
     }

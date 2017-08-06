@@ -69,7 +69,7 @@ end
 
 function on_tick(frame)
     if frame % 10  == 0 then
-        call_router_all("on_heartbeat", nil);
+        call_router_all("heartbeat", nil);
     end
 
     router_mgr.update(frame);

@@ -18,7 +18,7 @@ function setup(service_name)
 
     hive.id = make_service_id(group_id, args.index or 1);
 
-    local addrs = split_string(args.routers or "127.0.0.1:9000", ";");
+    local addrs = split_string(args.routers or "127.0.0.1:7070", ";");
     for i, addr in ipairs(addrs) do
         local tab = split_string(addr, ":");
         local ip, port = table.unpack(tab);
@@ -54,7 +54,7 @@ function connect(node)
             log_err("failed to connect router %s:%s", node.ip, node.port);
             return;
         end
-        log_err("router lost: %s:%s", node.ip, node.port);
+        log_err("router lost %s:%s, err=%s", node.ip, node.port, err);
         node.alive = false;
         switch_router();
     end
@@ -62,6 +62,7 @@ function connect(node)
     socket.on_connected = function()
         node.alive = true;
         node.alive_time = hive.now;
+        socket.call("register", hive.id);
         switch_router();
     end
 
@@ -126,7 +127,7 @@ _G.call_mailsvr_hash = function(hash_key, msg, ...)
     end
 end
 
-function s2s.on_heartbeat()
+function s2s.heartbeat()
     --do nothing
 end
 
