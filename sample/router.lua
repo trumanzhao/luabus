@@ -3,9 +3,12 @@ require("common/log");
 require("common/tree");
 require("common/alt_getopt");
 require("common/signal");
+require("common/tools");
 lbus = require("lbus");
 
 _G.s2s = s2s or {};
+sessions = sessions or {};
+groups = groups or {};
 
 if not hive.init_flag then
     local long_opts = 
@@ -46,11 +49,10 @@ if not hive.init_flag then
     hive.init_flag = true;
 end
 
-sessions = sessions or {};
-
 listener.on_accept = function(ss)
     log_info("new connection ...");
 
+    ss.set_timeout(1000 * service_timeout_value);
     sessions[ss.token] = ss;
 
     ss.on_call = function(msg, ...)
@@ -73,13 +75,29 @@ listener.on_accept = function(ss)
     end
 
     ss.on_error = function(err)
-        sessions[ss.token] = nil;
         log_err("connection lost: %s", err);
+        if ss.id then
+            --要实现固定哈希的话,可以把这里的nil改为0
+            socket_mgr.map_token(ss.id, nil);
+            local idx = get_service_group(ss.id);
+            local group = groups[idx]; 
+            if group and ss.token == group.master then
+                group.master = 0;
+                group.lease_time = 0;
+                socket_mgr.set_master(idx, 0);
+                log_info("switch master %s --> nil", ss.name);
+            end
+        end
+        sessions[ss.token] = nil;
     end
 end
 
 function s2s.register(ss, id)
-
+    if not ss.id then
+        ss.id = id;
+        ss.name = service_id2name(id);
+        socket_mgr.map_token(id, ss.token);
+    end
 end
 
 hive.start_time = hive.start_time or hive.get_time_ms();
@@ -108,38 +126,34 @@ function hive.run()
     end
 end
 
+
 function on_tick(frame)
+    --nothing
 end
 
 --lease_time: master租约时间戳,可以为nil
 function s2s.on_heartbeat(ss, lease_time)
-    if not ss.id then
-        return;
-    end
+    local idx = get_service_group(ss.id);
+    local group = groups[idx] or {lease_time=0, master=0, name=service_names[idx]};
 
-    local group_idx = get_service_group(ss.id);
-    local group = groups[group_idx];
-    local route_changed = false;
+    groups[idx] = group;
 
     ss.call("on_heartbeat");
 
     if lease_time and lease_time > group.lease_time then
         group.lease_time = lease_time;
-        if ss.id ~= group.master then
-            log_info("switch master %s: %s --> %s", group.name, service_id2name(group.master), ss.name);
-            group.master = ss.id;
-            route_changed = true;
+        if ss.token ~= group.master then
+            log_info("switch master %s --> %s", service_id2name(group.master), ss.name);
+            group.master = ss.token;
+            socket_mgr.set_master(idx, ss.token);
         end
     end
 
-    if ss.id == group.master and not lease_time then
+    if ss.token == group.master and not lease_time then
         group.master = 0;
         group.lease_time = 0;
-        log_info("switch master %s: %s --> nil", group.name, ss.name);
-    end
-
-    if route_changed then
-        update_route_table(group_idx, group);
+        socket_mgr.set_master(idx, 0);
+        log_info("switch master %s --> nil", ss.name);
     end
 end
 

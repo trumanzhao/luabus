@@ -54,6 +54,9 @@ function service_str2id(str)
 end
 
 function service_id2name(id)
+    if id == nil or id == 0 then
+        return "nil";
+    end
     local group = id >> 16;
     local index = id & 0xff;
     local fmt = "%s.%s";
