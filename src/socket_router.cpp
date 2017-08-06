@@ -13,22 +13,22 @@
 
 uint32_t get_group_idx(uint32_t service_id) { return  (service_id >> 16) & 0xff; }
 
-void socket_router::update(uint32_t service_id, uint32_t token, bool is_master)
+void socket_router::set_master(uint32_t group_idx, uint32_t token)
+{
+    if (group_idx < m_groups.size())
+    {
+        m_groups[group_idx].master = token;
+    }
+}
+
+void socket_router::map_token(uint32_t service_id, uint32_t token)
 {
     uint32_t group_idx = get_group_idx(service_id);
     auto& group = m_groups[group_idx];
-
-    if (is_master)
-    {
-        group.master = token;
-    }
-
     auto& nodes = group.nodes;
     auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](service_node& node, uint32_t id) { return node.id < id; });
     if (it != nodes.end() && it->id == service_id)
     {
-        if (it->token == group.master && !is_master)
-            group.master = 0;
         it->token = token;
     }
     else
@@ -48,8 +48,6 @@ void socket_router::erase(uint32_t service_id)
     auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](service_node& node, uint32_t id) { return node.id < id; });
     if (it != nodes.end() && it->id == service_id)
     {
-        if (it->token == group.master)
-            group.master = 0;
         nodes.erase(it);
     }
 }

@@ -14,7 +14,8 @@ EXPORT_LUA_FUNCTION(listen)
 EXPORT_LUA_FUNCTION(connect)
 EXPORT_LUA_FUNCTION(set_package_size)
 EXPORT_LUA_FUNCTION(set_lz_threshold)
-EXPORT_LUA_FUNCTION_AS(register_route_table, "register")
+EXPORT_LUA_FUNCTION(set_master)
+EXPORT_LUA_FUNCTION(map_token)
 EXPORT_CLASS_END()
 
 lua_socket_mgr::~lua_socket_mgr()
@@ -92,7 +93,12 @@ void lua_socket_mgr::set_lz_threshold(size_t size)
     m_archiver->set_lz_threshold(size);
 }
 
-int lua_socket_mgr::register_route_table(lua_State* L)
+void lua_socket_mgr::set_master(uint32_t group_idx, uint32_t token)
+{
+    m_router->set_master(group_idx, token);
+}
+
+int lua_socket_mgr::map_token(lua_State* L)
 {
     uint32_t service_id = (uint32_t)lua_tointeger(L, 1);
     if (lua_isnil(L, 2))
@@ -102,8 +108,7 @@ int lua_socket_mgr::register_route_table(lua_State* L)
     else
     {
         uint32_t token = (uint32_t)lua_tointeger(L, 2);
-        bool is_master = !!lua_toboolean(L, 3);
-        m_router->update(service_id, token, is_master);
+        m_router->map_token(service_id, token);
     }
     return 0;
 }

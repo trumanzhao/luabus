@@ -38,7 +38,8 @@ class socket_router
 public:
     socket_router(std::shared_ptr<socket_mgr>& mgr) : m_mgr(mgr){ }
 
-    void update(uint32_t service_id, uint32_t token, bool is_master);
+    void set_master(uint32_t group_idx, uint32_t token);
+    void map_token(uint32_t service_id, uint32_t token);
     void erase(uint32_t service_id);
     void do_forward_target(char* data, size_t data_len);
     void do_forward_master(char* data, size_t data_len);
