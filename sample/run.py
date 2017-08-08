@@ -23,9 +23,9 @@ def run_app_one(app):
         cmd += " --routers=127.0.0.1:9000";
 
     if app == "gateway":
-        cmd += " --listen=127.0.0.1:9001";
+        cmd += " --listen=127.0.0.1:7571";
     if app == "lobby":
-        cmd += " --listen=127.0.0.1:9002";
+        cmd += " --listen=127.0.0.1:7572";
     print(cmd);
 
     os.system(cmd);

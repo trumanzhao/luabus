@@ -4,13 +4,14 @@ sessions = sessions or {};
 session_count = session_count or 0;
 
 function setup()
-    local tokens = split_string(hive.args.listen or "127.0.0.1:9002", ":");
+    local tokens = split_string(hive.args.listen or "127.0.0.1:7572", ":");
     local ip, port = table.unpack(tokens);
     listener = socket_mgr.listen(ip, port);
     if not listener then
         log_err("failed to listen %s:%s", ip, port);
         os.exit(1);
     end
+	log_info("listen client at %s:%s", ip, port);
 	listen_ip = ip;
 	listen_port = port;
     listener.on_accept = on_accept;
