@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 project(lbus)
 aux_source_directory(src lbus_src)
 set(CMAKE_CXX_STANDARD 14)
