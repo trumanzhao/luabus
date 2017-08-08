@@ -6,14 +6,17 @@ require("common/signal");
 lbus = require("lbus")
 
 _G.s2s = s2s or {};
+_G.c2s = c2s or {};
 
 if not hive.init_flag then
     local long_opts = 
     {
         routers=1, --router addr: 127.0.0.1:6000;127.0.0.1:6001
+        listen=1, --listen addr for client: 127.0.0.1:5000
         index=1, --instance index
-        log=1, --log file: gamesvr.1
         daemon=0, 
+        log=1, --log file: gamesvr.1
+        connections=1, --max-connection-count
     };
     local args, optind = alt_getopt.get_opts(hive.args, "", long_opts);
 
@@ -21,7 +24,7 @@ if not hive.init_flag then
         hive.daemon(1, 1);
     end
 
-    log_open(args.log or "dbagent", 60000);
+    log_open(args.log or "lobby", 60000);
 
     hive.print = log_info;
     _G.print = log_debug;
@@ -33,16 +36,19 @@ if not hive.init_flag then
     hive.frame = hive.frame or 0;
 
     router_mgr = import("common/router_mgr.lua");
-    router_mgr.setup("dbagent");
+    session_mgr = import("lobby/session_mgr.lua");
+
+    router_mgr.setup("lobby");
+    session_mgr.setup();
+
     hive.init_flag = true;
 end
 
 collectgarbage("stop");
 
-import("dbagent/lease_mgr.lua");
-
 hive.run = function()
     hive.now = os.time();
+
     local count = socket_mgr.wait(10);
     local cost_time = hive.get_time_ms() - hive.start_time;
     if 100 * hive.frame <  cost_time  then
@@ -66,8 +72,13 @@ function on_tick(frame)
     end
 
     router_mgr.update(frame);
+    session_mgr.update(frame);
 end
 
+function c2s.hello(ss, txt)
+    log_debug("hello %s, from %s", txt, ss.openid);
+    call_client(ss.conn_idx, "welcome", "I'm god !");
+end
 
 
 

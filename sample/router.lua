@@ -22,15 +22,14 @@ if not hive.init_flag then
     };
     local args, optind = alt_getopt.get_opts(hive.args, "", long_opts);
 
-    hive.print = print;
     if args.daemon then
         hive.daemon(1, 1);
-        _G.print = log_debug;
-        hive.print = log_info;
     end
 
     log_open(args.log or "router", 60000);
 
+    hive.print = log_info;
+    _G.print = log_debug;
     socket_mgr = lbus.create_socket_mgr(args.connections or 64);
 
     hive.args = args;

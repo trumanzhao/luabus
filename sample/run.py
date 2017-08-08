@@ -24,7 +24,7 @@ def run_app_one(app):
 
     if app == "gateway":
         cmd += " --listen=127.0.0.1:9001";
-    if app == "gamesvr":
+    if app == "lobby":
         cmd += " --listen=127.0.0.1:9002";
     print(cmd);
 

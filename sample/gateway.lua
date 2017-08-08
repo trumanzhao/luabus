@@ -20,15 +20,14 @@ if not hive.init_flag then
     };
     local args, optind = alt_getopt.get_opts(hive.args, "", long_opts);
 
-    hive.print = print;
     if args.daemon then
         hive.daemon(1, 1);
-        _G.print = log_debug;
-        hive.print = log_info;
     end
 
-    log_open(args.log or "gamesvr", 60000);
+    log_open(args.log or "gateway", 60000);
 
+    hive.print = log_info;
+    _G.print = log_debug;
     _G.socket_mgr = lbus.create_socket_mgr(args.connections or 1024);
 
     hive.args = args;
@@ -37,9 +36,9 @@ if not hive.init_flag then
     hive.frame = hive.frame or 0;
 
     router_mgr = import("common/router_mgr.lua");
-    session_mgr = import("gamesvr/session_mgr.lua");
+    session_mgr = import("gateway/session_mgr.lua");
 
-    router_mgr.setup("gamesvr");
+    router_mgr.setup("gateway");
     session_mgr.setup();
 
     hive.init_flag = true;
@@ -76,9 +75,41 @@ function on_tick(frame)
     session_mgr.update(frame);
 end
 
-function c2s.hello(ss, txt)
-    log_debug("hello %s, from %s", txt, ss.openid);
-    call_client(ss.conn_idx, "welcome", "I'm god !");
+lobby_list = lobby_list or {};
+
+function s2s.sync_payload(id, payload, ip, port)
+	local node = lobby_list[id] or {};
+	node.payload = payload;
+	node.ip = ip;
+	node.port = port;
+	node.time = os.time();
+	lobby_list[id] = node;
+	log_debug("sync payload, id=%s, payload=%s, url=%s:%s", service_id2name(id), payload, ip, port);
+end
+
+function find_best_lobby()
+	local sel = nil;
+	local now = os.time();
+	for id, node in pairs(lobby_list) do
+		if node.time > now - service_timeout_value then
+			if sel == nil or node.payload < sel.payload then
+				sel = node;
+			end
+		end
+	end
+	return node;
+end
+
+local hotfix = "print('exec some code')";
+
+function c2s.login_req(ss)
+	local node = find_best_lobby();
+	if not node then
+		ss.call("login_res", "not-open", hotfix);
+		return;
+	end
+	node.payload = node.payload + 1;
+	ss.call("login_res", "ok", hotfix, node.ip, node.port);
 end
 
 

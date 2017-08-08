@@ -2,14 +2,14 @@
 --有三种形式:
 --servcie_id(string): 2.1
 --service_id(number): 131073
---service_name: gamesvr.1
---在上面的示例中,服务id 2.1中的2表明服务分组(group)为2(gamesvr),实例编号(index)为1
+--service_name: lobby.1
+--在上面的示例中,服务id 2.1中的2表明服务分组(group)为2(lobby),实例编号(index)为1
 
 service_groups = 
 {
     router = 1,
-    gamesvr = 2,
-    gateway = 3,
+    gateway = 2,
+	lobby = 3,
     dbagent = 4,
     indexsvr = 5,
     mailsvr = 6,
@@ -18,8 +18,8 @@ service_groups =
 service_names =
 {
     [service_groups.router] = "router",
-    [service_groups.gamesvr] = "gamesvr",
     [service_groups.gateway] = "gateway",
+    [service_groups.lobby] = "lobby",
     [service_groups.dbagent] = "dbagent",
     [service_groups.indexsvr] = "indexsvr",
     [service_groups.mailsvr] = "mailsvr",

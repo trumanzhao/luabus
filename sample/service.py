@@ -3,7 +3,7 @@
 
 import sys, os, commands, string, re;
 
-apps = ["router", "gateway", "gamesvr", "dbagent", "mailsvr", "indexsvr"];
+apps = ["router", "gateway", "lobby", "dbagent"];
 
 #根据app名字找到进程id
 def find_pid_list(app):

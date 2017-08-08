@@ -4,7 +4,7 @@
 require("common/service");
 require("common/tools");
 
---router = nil;
+--master= nil;
 routers = routers or {};
 
 function setup(service_name)
@@ -56,20 +56,20 @@ function connect(node)
         end
         log_err("router lost %s:%s, err=%s", node.ip, node.port, err);
         node.alive = false;
-        switch_router();
+        switch_master();
     end
 
     socket.on_connected = function()
         node.alive = true;
         node.alive_time = hive.now;
         socket.call("register", hive.id);
-        switch_router();
+        switch_master();
     end
 
     node.socket = socket;
 end
 
-function switch_router()
+function switch_master()
     local candidates = {};
     for i, node in pairs(routers) do
         if node.alive then
@@ -77,18 +77,18 @@ function switch_router()
         end
     end
 
-    router = nil;
+    master = nil;
 
     local count = #candidates;
     if count > 0 then
-        router = candidates[math.random(count)];
-        log_info("switch router: %s:%s", router.ip, router.port);
+        master = candidates[math.random(count)];
+        log_info("switch router: %s:%s", master.ip, master.port);
     end
 end
 
 _G.call_router = function(msg, ...)
-    if router then
-        router.call(msg, ...);
+    if master then
+        master.socket.call(msg, ...);
     end
 end
 
@@ -101,29 +101,36 @@ _G.call_router_all = function(msg, ...)
 end
 
 _G.call_target = function(target, msg, ...)
-    if router then
-        router.forward_target(target, msg, ...);
+    if master then
+        master.socket.forward_target(target, msg, ...);
+    end
+end
+
+local gateway_group = service_groups.gateway;
+_G.call_gateway_all = function(msg, ...)
+    if master then
+        master.socket.forward_broadcast(gateway_group, msg, ...);
     end
 end
 
 local dbagent_group = service_groups.dbagent;
 _G.call_dbagent_hash = function(hash_key, msg, ...)
-    if router then
-        router.forward_hash(dbagent_group, hash_key, msg, ...);
+    if master then
+        master.socket.forward_hash(dbagent_group, hash_key, msg, ...);
     end
 end
 
 local indexsvr_group = service_groups.indexsvr;
 _G.call_indexsvr_hash = function(hash_key, msg, ...)
-    if router then
-        router.forward_hash(indexsvr_group, hash_key, msg, ...);
+    if master then
+        master.socket.forward_hash(indexsvr_group, hash_key, msg, ...);
     end
 end
 
 local mailsvr_group = service_groups.mailsvr;
 _G.call_mailsvr_hash = function(hash_key, msg, ...)
-    if router then
-        router.forward_hash(mailsvr_group, hash_key, msg, ...);
+    if master then
+        master.socket.forward_hash(mailsvr_group, hash_key, msg, ...);
     end
 end
 
@@ -138,7 +145,7 @@ function update(frame)
             log_info("router timeout: %s:%s", node.ip, node.port);
             node.alive = false;
             node.socket = nil;
-            switch_router();
+            switch_master();
         end
 
         if node.socket == nil then
