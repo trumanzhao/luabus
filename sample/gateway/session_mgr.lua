@@ -14,7 +14,7 @@ function setup()
 	log_info("listen client at %s:%s", ip, port);
 	listen_ip = ip;
 	listen_port = port;
-    listener.on_accept = on_accept;
+    listener.on_accept = log_decorator(on_accept);
 end
 
 function update(frame)
