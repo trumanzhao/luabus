@@ -12,7 +12,8 @@ def get_target_apps():
 
 
 def run_app_one(app):
-    cmd = "./%s.lua" % app;
+    cmd = "./hive";
+    cmd += " %s.lua" % app;
     cmd += " --index=1";
     cmd += " --daemon";
 
