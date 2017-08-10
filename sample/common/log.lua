@@ -26,6 +26,11 @@ local function log_write(cate, fmt, ...)
     if not ok then
         line = fmt.."... ...";
     end
+    
+    local args = hive.args;
+    if not args or not args.daemon then
+        io.stdout:write(line);
+    end    
 
     local log_dir = os.date("log/%m%d", now);
     if log_file == nil or log_line_count >= log_max_line or log_dir ~= last_dir then
@@ -41,11 +46,7 @@ local function log_write(cate, fmt, ...)
         if log_file == nil then
             return;
         end
-    end
-
-    local args = hive.args;
-    if not args or not args.daemon then
-        io.stdout:write(line);
+        log_file:setvbuf("no");
     end
 
     if not log_file:write(line) then
@@ -54,8 +55,7 @@ local function log_write(cate, fmt, ...)
         log_line_count = 0;
         return;
     end
-
-    log_file:flush();
+    
     log_line_count = log_line_count + 1;
 end
 
