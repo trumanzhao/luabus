@@ -12,13 +12,10 @@
 #include "lua_archiver.h"
 #include "socket_router.h"
 
-// 注意,因为包装层的listener,stream析构的时候,已经close了token
-// 所以不存在相关事件(accept, package, error...)触发时,相应的wapper对象失效的问题
-// 因为close之后,这些事件不可能触发嘛:)
-
 struct lua_socket_node final
 {
-    lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<lua_archiver>& ar, std::shared_ptr<socket_router> router);
+    lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, 
+    	std::shared_ptr<lua_archiver>& ar, std::shared_ptr<socket_router> router);
     ~lua_socket_node();
 
     int call(lua_State* L);
@@ -45,6 +42,7 @@ private:
     std::shared_ptr<socket_mgr> m_mgr;
     std::shared_ptr<lua_archiver> m_archiver;
     std::shared_ptr<socket_router> m_router;
+    bool m_lite_mode = false;
 
 public:
     DECLARE_LUA_CLASS(lua_socket_node);

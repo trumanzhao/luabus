@@ -20,12 +20,14 @@ EXPORT_LUA_FUNCTION(set_recv_cache)
 EXPORT_LUA_FUNCTION(set_timeout)
 EXPORT_LUA_STD_STR_AS_R(m_ip, "ip")
 EXPORT_LUA_INT_AS_R(m_token, "token")
+EXPORT_LUA_BOOL(m_lite_mode)
 EXPORT_CLASS_END()
 
-lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<lua_archiver>& ar, std::shared_ptr<socket_router> router)
+lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, 
+	std::shared_ptr<lua_archiver>& ar, std::shared_ptr<socket_router> router)
     : m_token(token), m_lvm(L), m_mgr(mgr), m_archiver(ar), m_router(router)
 {
-    m_mgr->get_remote_ip(m_token, m_ip); // just valid for accepted stream
+    m_mgr->get_remote_ip(m_token, m_ip); 
 
     m_mgr->set_accept_callback(token, [this](uint32_t steam_token)
     {
@@ -55,7 +57,7 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<s
 
 lua_socket_node::~lua_socket_node()
 {
-    m_mgr->close(m_token);
+	close();
 }
 
 int lua_socket_node::call(lua_State* L)
@@ -64,24 +66,30 @@ int lua_socket_node::call(lua_State* L)
     if (top < 1)
         return 0;
 
-    BYTE msg_id_data[MAX_VARINT_SIZE];
-    size_t msg_id_len = encode_u64(msg_id_data, sizeof(msg_id_data), (char)msg_id::remote_call);
-
     size_t data_len = 0;
     void* data = m_archiver->save(&data_len, L, 1, top);
     if (data == nullptr)
         return 0;
 
-    sendv_item items[] = {{msg_id_data, msg_id_len}, {data, data_len}};
-    m_mgr->sendv(m_token, items, _countof(items));
     lua_pushinteger(L, data_len);
+
+    if (m_lite_mode)
+    {
+    	m_mgr->send(m_token, data, data_len);
+    	return 1;
+    }
+
+    BYTE msg_id_data[MAX_VARINT_SIZE];
+    size_t msg_id_len = encode_u64(msg_id_data, sizeof(msg_id_data), (char)msg_id::remote_call);    	
+    sendv_item items[] = {{msg_id_data, msg_id_len}, {data, data_len}};
+    m_mgr->sendv(m_token, items, _countof(items));    	
     return 1;
 }
 
 int lua_socket_node::forward_target(lua_State* L)
 {
     int top = lua_gettop(L);
-    if (top < 2)
+    if (m_lite_mode || top < 2)
         return 0;
 
     BYTE msg_id_data[MAX_VARINT_SIZE];
@@ -106,7 +114,7 @@ template <msg_id forward_method>
 int lua_socket_node::forward_by_group(lua_State* L)
 {
     int top = lua_gettop(L);
-    if (top < 2)
+    if (m_lite_mode || top < 2)
         return 0;
 
     static_assert(forward_method == msg_id::forward_master || forward_method == msg_id::forward_random ||
@@ -145,7 +153,7 @@ static uint32_t string_hash(const char* str)
 int lua_socket_node::forward_hash(lua_State* L)
 {
     int top = lua_gettop(L);
-    if (top < 3)
+    if (m_lite_mode || top < 3)
         return 0;
 
     BYTE msg_id_data[MAX_VARINT_SIZE];
@@ -199,6 +207,12 @@ void lua_socket_node::close()
 
 void lua_socket_node::on_recv(char* data, size_t data_len)
 {
+	if (m_lite_mode)
+	{
+		on_call(data, data_len);
+		return;
+	}
+
     uint64_t msg = 0;
     size_t len = decode_u64(&msg, (BYTE*)data, data_len);
     if (len == 0)
