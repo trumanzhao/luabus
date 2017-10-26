@@ -261,7 +261,7 @@ int socket_mgr_impl::connect(std::string& err, const char node_name[], const cha
 {
     if (is_full())
     {
-        err = "too_many_connection";
+        err = "too-many-connection";
         return 0;
     }
 

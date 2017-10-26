@@ -175,7 +175,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
         if (node->fd == INVALID_SOCKET)
         {
             m_closed = true;
-            m_error_cb("new_socket_failed");
+            m_error_cb("new-socket-failed");
             return;
         }
 
@@ -216,7 +216,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
             close_socket_handle(node->fd);
             node->fd = INVALID_SOCKET;
             m_closed = true;
-            m_error_cb("accept_stream_failed");
+            m_error_cb("new-stream-failed");
             return;
         }
 

@@ -143,13 +143,13 @@ bool socket_stream::do_connect()
 {
     if (!bind_any(m_socket))
     {
-        call_error("bind_failed");
+        call_error("bind-failed");
         return false;
     }
 
     if (!m_mgr->watch_connecting(m_socket, this))
     {
-        call_error("watch_connecting_failed");
+        call_error("watch-failed");
         return false;
     }
 
@@ -167,7 +167,7 @@ bool socket_stream::do_connect()
         }
 
         m_closed = true;
-        call_error("connect_failed");
+        call_error("connect-failed");
         return false;
     }
 
@@ -177,7 +177,7 @@ bool socket_stream::do_connect()
 
     if (!wsa_recv_empty(m_socket, m_recv_ovl))
     {
-        call_error("connect_failed");
+        call_error("connect-failed");
         return false;
     }
 
@@ -215,7 +215,7 @@ bool socket_stream::do_connect()
 
         if (!m_mgr->watch_connecting(m_socket, this))
         {
-            call_error("watch_connecting_failed");
+            call_error("watch-failed");
             return false;
         }
         break;
@@ -238,7 +238,7 @@ void socket_stream::try_connect()
         int ret = getaddrinfo(m_node_name.c_str(), m_service_name.c_str(), &hints, &addr);
         if (ret != 0 || addr == nullptr)
         {
-            call_error("dns_error");
+            call_error("dns-error");
             return;
         }
 
@@ -278,7 +278,7 @@ void socket_stream::try_connect()
         }
     }
 
-    call_error("connect_failed");
+    call_error("connect-failed");
 }
 
 void socket_stream::send(const void* data, size_t data_len)
@@ -323,7 +323,7 @@ void socket_stream::stream_send(const char* data, size_t data_len)
     {
         if (!m_send_buffer->push_data(data, data_len))
         {
-            call_error("send_cache_full");
+            call_error("send-buffer-full");
         }
         return;
     }
@@ -340,13 +340,13 @@ void socket_stream::stream_send(const char* data, size_t data_len)
             {
                 if (!m_send_buffer->push_data(data, data_len))
                 {
-                    call_error("send_cache_full");
+                    call_error("send-buffer-full");
                     return;
                 }
 
                 if (!wsa_send_empty(m_socket, m_send_ovl))
                 {
-                    call_error("wsa_send_failed");
+                    call_error("send-failed");
                     return;
                 }
                 m_ovl_ref++;
@@ -362,13 +362,13 @@ void socket_stream::stream_send(const char* data, size_t data_len)
             {
                 if (!m_send_buffer->push_data(data, data_len))
                 {
-                    call_error("send_cache_full");
+                    call_error("send-buffer-full");
                     return;
                 }
 
                 if (!m_mgr->watch_send(m_socket, this, true))
                 {
-                    call_error("enable_watch_send_failed");
+                    call_error("watch-error");
                     return;
                 }
 
@@ -376,13 +376,13 @@ void socket_stream::stream_send(const char* data, size_t data_len)
             }
 #endif
 
-            call_error("send_failed");
+            call_error("send-failed");
             return;
         }
 
         if (send_len == 0)
         {
-            call_error("connection_lost");
+            call_error("connection-lost");
             return;
         }
 
@@ -422,7 +422,7 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
 
         if (!wsa_recv_empty(m_socket, m_recv_ovl))
         {
-            call_error("connect_failed");
+            call_error("connect-failed");
             return;
         }
         m_ovl_ref++;
@@ -436,7 +436,7 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
     m_socket = INVALID_SOCKET;
     if (m_next == nullptr)
     {
-        call_error("connect_failed");
+        call_error("connect-failed");
     }
 }
 #endif
@@ -464,7 +464,7 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof)
 
         if (!m_mgr->watch_connected(m_socket, this))
         {
-            call_error("connection_watch_failed");
+            call_error("watch-error");
             return;
         }
         m_connected = true;
@@ -477,7 +477,7 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof)
     m_socket = INVALID_SOCKET;
     if (m_next == nullptr)
     {
-        call_error("connect_failed");
+        call_error("connect-failed");
     }
 }
 #endif
@@ -494,7 +494,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
         {
             if (!m_mgr->watch_send(m_socket, this, false))
             {
-                call_error("disable_watch_send_failed");
+                call_error("watch-error");
                 return;
             }
             break;
@@ -511,7 +511,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
             {
                 if (!wsa_send_empty(m_socket, m_send_ovl))
                 {
-                    call_error("wsa_send_failed");
+                    call_error("send-failed");
                     return;
                 }
                 m_ovl_ref++;
@@ -527,13 +527,13 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
                 break;
 #endif
 
-            call_error("send_failed");
+            call_error("send-failed");
             return;
         }
 
         if (send_len == 0)
         {
-            call_error("connection_lost");
+            call_error("connection-lost");
             return;
         }
 
@@ -545,7 +545,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
 
     if (is_eof || max_len == 0)
     {
-        call_error("connection_lost");
+        call_error("connection-lost");
     }
 }
 
@@ -558,7 +558,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
         auto* space = m_recv_buffer->peek_space(&space_len);
         if (space_len == 0)
         {
-            call_error("package_too_large");
+            call_error("package-too-large");
             return;
         }
 
@@ -573,7 +573,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
             {
                 if (!wsa_recv_empty(m_socket, m_recv_ovl))
                 {
-                    call_error("wsa_recv_failed");
+                    call_error("recv-failed");
                     return;
                 }
                 m_ovl_ref++;
@@ -589,13 +589,13 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
                 break;
 #endif
 
-            call_error("recv_failed");
+            call_error("recv-failed");
             return;
         }
 
         if (recv_len == 0)
         {
-            call_error("connection_lost");
+            call_error("connection-lost");
             return;
         }
 
@@ -606,7 +606,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
 
     if (is_eof || max_len == 0)
     {
-        call_error("connection_lost");
+        call_error("connection-lost");
     }
 }
 
@@ -649,3 +649,4 @@ void socket_stream::call_error(const char err[])
         m_error_cb(err);
     }
 }
+
