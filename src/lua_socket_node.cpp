@@ -23,11 +23,11 @@ EXPORT_LUA_INT_AS_R(m_token, "token")
 EXPORT_LUA_BOOL(m_lite_mode)
 EXPORT_CLASS_END()
 
-lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, 
+lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr,
 	std::shared_ptr<lua_archiver>& ar, std::shared_ptr<socket_router> router)
     : m_token(token), m_lvm(L), m_mgr(mgr), m_archiver(ar), m_router(router)
 {
-    m_mgr->get_remote_ip(m_token, m_ip); 
+    m_mgr->get_remote_ip(m_token, m_ip);
 
     m_mgr->set_accept_callback(token, [this](uint32_t steam_token)
     {
@@ -36,17 +36,21 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<s
         lua_call_object_function(m_lvm, nullptr, this, "on_accept", std::tie(), stream);
     });
 
-    m_mgr->set_connect_callback(token, [this]()
+    m_mgr->set_connect_callback(token, [this](bool ok, const char* reason)
     {
+        if (ok)
+        {
+            m_mgr->get_remote_ip(m_token, m_ip);
+        }
+
         lua_guard g(m_lvm);
-        m_mgr->get_remote_ip(m_token, m_ip);
-        lua_call_object_function(m_lvm, nullptr, this, "on_connected");
+        lua_call_object_function(m_lvm, nullptr, this, "on_connect", std::tie(), ok, reason);
     });
 
-    m_mgr->set_error_callback(token, [this](const char* txt)
+    m_mgr->set_error_callback(token, [this](const char* err)
     {
         lua_guard g(m_lvm);
-        lua_call_object_function(m_lvm, nullptr, this, "on_error", std::tie(), txt);
+        lua_call_object_function(m_lvm, nullptr, this, "on_error", std::tie(), err);
     });
 
     m_mgr->set_package_callback(token, [this](char* data, size_t data_len)
@@ -80,9 +84,9 @@ int lua_socket_node::call(lua_State* L)
     }
 
     BYTE msg_id_data[MAX_VARINT_SIZE];
-    size_t msg_id_len = encode_u64(msg_id_data, sizeof(msg_id_data), (char)msg_id::remote_call);    	
+    size_t msg_id_len = encode_u64(msg_id_data, sizeof(msg_id_data), (char)msg_id::remote_call);
     sendv_item items[] = {{msg_id_data, msg_id_len}, {data, data_len}};
-    m_mgr->sendv(m_token, items, _countof(items));    	
+    m_mgr->sendv(m_token, items, _countof(items));
     return 1;
 }
 

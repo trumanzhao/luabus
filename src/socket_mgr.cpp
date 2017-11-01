@@ -40,7 +40,7 @@ bool socket_mgr::setup(int max_connection)
 
 int socket_mgr::wait(int timeout){ return m_impl->wait(timeout); }
 int socket_mgr::listen(std::string& err, const char ip[], int port){ return m_impl->listen(err, ip, port); }
-int socket_mgr::connect(std::string& err, const char node_name[], const char service_name[]){ return m_impl->connect(err, node_name, service_name); }
+int socket_mgr::connect(std::string& err, const char node_name[], const char service_name[], int timeout){ return m_impl->connect(err, node_name, service_name, timeout); }
 void socket_mgr::set_send_cache(uint32_t token, size_t size){ m_impl->set_send_cache(token, size); }
 void socket_mgr::set_recv_cache(uint32_t token, size_t size){ m_impl->set_recv_cache(token, size); }
 void socket_mgr::set_timeout(uint32_t token, int duration){ m_impl->set_timeout(token, duration); }
@@ -49,6 +49,6 @@ void socket_mgr::sendv(uint32_t token, const sendv_item items[], int count){ m_i
 void socket_mgr::close(uint32_t token){ m_impl->close(token); }
 bool socket_mgr::get_remote_ip(uint32_t token, std::string& ip){ return m_impl->get_remote_ip(token, ip); }
 void socket_mgr::set_accept_callback(uint32_t token, const std::function<void(uint32_t)>& cb){ m_impl->set_accept_callback(token, cb); }
-void socket_mgr::set_connect_callback(uint32_t token, const std::function<void()>& cb){ m_impl->set_connect_callback(token, cb); }
+void socket_mgr::set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb){ m_impl->set_connect_callback(token, cb); }
 void socket_mgr::set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb){ m_impl->set_package_callback(token, cb); }
 void socket_mgr::set_error_callback(uint32_t token, const std::function<void(const char*)>& cb){ m_impl->set_error_callback(token, cb); }

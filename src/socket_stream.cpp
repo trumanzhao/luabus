@@ -80,7 +80,15 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[])
     safe_cpy(m_ip, ip);
     m_socket = fd;
     m_connected = true;
+    m_last_recv_time = get_time_ms();
     return true;
+}
+
+void socket_stream::connect(const char node_name[], const char service_name[], int timeout)
+{
+    m_node_name = node_name;
+    m_service_name = service_name;
+    m_connecting_time = get_time_ms() + timeout;
 }
 
 bool socket_stream::update(int64_t now)
@@ -102,15 +110,21 @@ bool socket_stream::update(int64_t now)
 #endif
     }
 
-    if (m_timeout > 0 && now - m_alive_time > m_timeout)
-    {
-        call_error("timeout");
-        return false;
-    }
-
     if (!m_connected)
     {
+        if (now > m_connecting_time)
+        {
+            on_connect(false, "timeout");
+            return true;
+        }
+
         try_connect();
+        return true;
+    }
+
+    if (m_timeout > 0 && now - m_last_recv_time > m_timeout)
+    {
+        on_error("timeout");
     }
 
     return true;
@@ -143,13 +157,13 @@ bool socket_stream::do_connect()
 {
     if (!bind_any(m_socket))
     {
-        call_error("bind-failed");
+        on_connect(false, "bind-failed");
         return false;
     }
 
     if (!m_mgr->watch_connecting(m_socket, this))
     {
-        call_error("watch-failed");
+        on_connect(false, "watch-failed");
         return false;
     }
 
@@ -167,23 +181,18 @@ bool socket_stream::do_connect()
         }
 
         m_closed = true;
-        call_error("connect-failed");
+        on_connect(false, "connect-failed");
         return false;
     }
 
-    freeaddrinfo(m_addr);
-    m_addr = nullptr;
-    m_next = nullptr;
-
     if (!wsa_recv_empty(m_socket, m_recv_ovl))
     {
-        call_error("connect-failed");
+        on_connect(false, "connect-failed");
         return false;
     }
 
     m_ovl_ref++;
-    m_connected = true;
-    m_connect_cb();
+    on_connect(true, "ok");
     return true;
 }
 #endif
@@ -196,11 +205,7 @@ bool socket_stream::do_connect()
         auto ret = ::connect(m_socket, m_next->ai_addr, (int)m_next->ai_addrlen);
         if (ret != SOCKET_ERROR)
         {
-            freeaddrinfo(m_addr);
-            m_addr = nullptr;
-            m_next = nullptr;
-            m_connected = true;
-            m_connect_cb();
+            on_connect(true, "ok");
             break;
         }
 
@@ -215,7 +220,7 @@ bool socket_stream::do_connect()
 
         if (!m_mgr->watch_connecting(m_socket, this))
         {
-            call_error("watch-failed");
+            on_connect(false, "watch-failed");
             return false;
         }
         break;
@@ -238,7 +243,7 @@ void socket_stream::try_connect()
         int ret = getaddrinfo(m_node_name.c_str(), m_service_name.c_str(), &hints, &addr);
         if (ret != 0 || addr == nullptr)
         {
-            call_error("dns-error");
+            on_connect(false, "addr-error");
             return;
         }
 
@@ -278,7 +283,7 @@ void socket_stream::try_connect()
         }
     }
 
-    call_error("connect-failed");
+    on_connect(false, "connect-failed");
 }
 
 void socket_stream::send(const void* data, size_t data_len)
@@ -323,7 +328,7 @@ void socket_stream::stream_send(const char* data, size_t data_len)
     {
         if (!m_send_buffer->push_data(data, data_len))
         {
-            call_error("send-buffer-full");
+            on_error("send-buffer-full");
         }
         return;
     }
@@ -340,13 +345,13 @@ void socket_stream::stream_send(const char* data, size_t data_len)
             {
                 if (!m_send_buffer->push_data(data, data_len))
                 {
-                    call_error("send-buffer-full");
+                    on_error("send-buffer-full");
                     return;
                 }
 
                 if (!wsa_send_empty(m_socket, m_send_ovl))
                 {
-                    call_error("send-failed");
+                    on_error("send-failed");
                     return;
                 }
                 m_ovl_ref++;
@@ -362,13 +367,13 @@ void socket_stream::stream_send(const char* data, size_t data_len)
             {
                 if (!m_send_buffer->push_data(data, data_len))
                 {
-                    call_error("send-buffer-full");
+                    on_error("send-buffer-full");
                     return;
                 }
 
                 if (!m_mgr->watch_send(m_socket, this, true))
                 {
-                    call_error("watch-error");
+                    on_error("watch-error");
                     return;
                 }
 
@@ -376,13 +381,13 @@ void socket_stream::stream_send(const char* data, size_t data_len)
             }
 #endif
 
-            call_error("send-failed");
+            on_error("send-failed");
             return;
         }
 
         if (send_len == 0)
         {
-            call_error("connection-lost");
+            on_error("connection-lost");
             return;
         }
 
@@ -416,18 +421,14 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
     auto ret = getsockopt(m_socket, SOL_SOCKET, SO_CONNECT_TIME, (char*)&seconds, &sock_len);
     if (ret == 0 && seconds != 0xffffffff)
     {
-        freeaddrinfo(m_addr);
-        m_addr = nullptr;
-        m_next = nullptr;
-
         if (!wsa_recv_empty(m_socket, m_recv_ovl))
         {
-            call_error("connect-failed");
+            on_connect(false, "connect-failed");
             return;
         }
+
         m_ovl_ref++;
-        m_connected = true;
-        m_connect_cb();
+        on_connect(true, "ok");
         return;
     }
 
@@ -436,7 +437,7 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
     m_socket = INVALID_SOCKET;
     if (m_next == nullptr)
     {
-        call_error("connect-failed");
+        on_connect(false, "connect-failed");
     }
 }
 #endif
@@ -458,17 +459,13 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof)
     auto ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, (char*)&err, &sock_len);
     if (ret == 0 && err == 0 && !is_eof)
     {
-        freeaddrinfo(m_addr);
-        m_addr = nullptr;
-        m_next = nullptr;
-
         if (!m_mgr->watch_connected(m_socket, this))
         {
-            call_error("watch-error");
+            on_connect(false, "watch-error");
             return;
         }
-        m_connected = true;
-        m_connect_cb();
+
+        on_connect(true, "ok");
         return;
     }
 
@@ -477,7 +474,7 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof)
     m_socket = INVALID_SOCKET;
     if (m_next == nullptr)
     {
-        call_error("connect-failed");
+        on_connect(false, "connect-failed");
     }
 }
 #endif
@@ -494,7 +491,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
         {
             if (!m_mgr->watch_send(m_socket, this, false))
             {
-                call_error("watch-error");
+                on_error("watch-error");
                 return;
             }
             break;
@@ -511,7 +508,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
             {
                 if (!wsa_send_empty(m_socket, m_send_ovl))
                 {
-                    call_error("send-failed");
+                    on_error("send-failed");
                     return;
                 }
                 m_ovl_ref++;
@@ -527,13 +524,13 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
                 break;
 #endif
 
-            call_error("send-failed");
+            on_error("send-failed");
             return;
         }
 
         if (send_len == 0)
         {
-            call_error("connection-lost");
+            on_error("connection-lost");
             return;
         }
 
@@ -545,7 +542,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
 
     if (is_eof || max_len == 0)
     {
-        call_error("connection-lost");
+        on_error("connection-lost");
     }
 }
 
@@ -558,7 +555,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
         auto* space = m_recv_buffer->peek_space(&space_len);
         if (space_len == 0)
         {
-            call_error("package-too-large");
+            on_error("package-too-large");
             return;
         }
 
@@ -573,7 +570,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
             {
                 if (!wsa_recv_empty(m_socket, m_recv_ovl))
                 {
-                    call_error("recv-failed");
+                    on_error("recv-failed");
                     return;
                 }
                 m_ovl_ref++;
@@ -589,13 +586,13 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
                 break;
 #endif
 
-            call_error("recv-failed");
+            on_error("recv-failed");
             return;
         }
 
         if (recv_len == 0)
         {
-            call_error("connection-lost");
+            on_error("connection-lost");
             return;
         }
 
@@ -606,7 +603,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
 
     if (is_eof || max_len == 0)
     {
-        call_error("connection-lost");
+        on_error("connection-lost");
     }
 }
 
@@ -625,7 +622,7 @@ void socket_stream::dispatch_package()
         if (data_len < header_len + package_size)
             break;
 
-        m_alive_time = get_time_ms();
+        m_last_recv_time = get_time_ms();
         m_package_cb((char*)data + header_len, (size_t)package_size);
 
         m_recv_buffer->pop_data(header_len + (size_t)package_size);
@@ -634,7 +631,7 @@ void socket_stream::dispatch_package()
     m_recv_buffer->regularize();
 }
 
-void socket_stream::call_error(const char err[])
+void socket_stream::on_error(const char err[])
 {
     if (!m_closed)
     {
@@ -647,6 +644,32 @@ void socket_stream::call_error(const char err[])
 
         m_closed = true;
         m_error_cb(err);
+    }
+}
+
+void socket_stream::on_connect(bool ok, const char reason[])
+{
+    m_next = nullptr;
+    if (m_addr != nullptr)
+    {
+        freeaddrinfo(m_addr);
+        m_addr = nullptr;
+    }
+
+    if (!m_closed)
+    {
+        if (!ok)
+        {
+            if (m_socket != INVALID_SOCKET)
+            {
+                close_socket_handle(m_socket);
+                m_socket = INVALID_SOCKET;
+            }
+            m_closed = true;
+        }
+        m_connected = ok;
+        m_last_recv_time = get_time_ms();
+        m_connect_cb(ok, reason);
     }
 }
 

@@ -35,9 +35,13 @@ listener = mgr.listen("127.0.0.1", 8080);
 
 ```lua
 --注意保持stream对象生存期,被gc的话,连接会自动关闭
---连接都是异步进行的,一直要stream上面触发'on_connected'事件后,连接才可用
---发生任何错误时,stream会触发'on_error'事件.
-stream = mgr.connect("127.0.0.1", 8080);
+--连接都是异步进行的,一直要stream上面触发'on_connect'事件后,连接才可用
+--connect(ip, port, timeout)
+stream = mgr.connect("127.0.0.1", 8080, 2000);
+--设置连接事件回调:
+stream.on_connect = function(ok, reason)
+    --如果连接失败,则reason表明了原因
+end
 ```
 
 向对端发送消息:

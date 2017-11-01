@@ -26,7 +26,7 @@ public:
     int wait(int timeout);
     int listen(std::string& err, const char ip[], int port);
     // 注意: connect总是异步的,需要通过回调函数确认连接成功后,才能发送数据
-    int connect(std::string& err, const char node_name[], const char service_name[]);
+    int connect(std::string& err, const char node_name[], const char service_name[], int timeout);
 
     void set_send_cache(uint32_t token, size_t size);
     void set_recv_cache(uint32_t token, size_t size);
@@ -37,7 +37,7 @@ public:
     bool get_remote_ip(uint32_t token, std::string& ip);
 
     void set_accept_callback(uint32_t token, const std::function<void(uint32_t)>& cb);
-    void set_connect_callback(uint32_t token, const std::function<void()>& cb);
+    void set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb);
     void set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb);
     void set_error_callback(uint32_t token, const std::function<void(const char*)>& cb);
 private:

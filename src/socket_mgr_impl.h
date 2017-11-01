@@ -27,7 +27,7 @@ struct socket_object
     virtual void send(const void* data, size_t data_len) { }
     virtual void sendv(const sendv_item items[], int count) { };
     virtual void set_accept_callback(const std::function<void(int)>& cb) { }
-    virtual void set_connect_callback(const std::function<void()>& cb) { }
+    virtual void set_connect_callback(const std::function<void(bool, const char*)>& cb) { }
     virtual void set_package_callback(const std::function<void(char*, size_t)>& cb) { }
     virtual void set_error_callback(const std::function<void(const char*)>& cb) { }
 
@@ -56,10 +56,10 @@ public:
     bool get_socket_funcs();
 #endif
 
-    int wait(int timout);
+    int wait(int timeout);
 
     int listen(std::string& err, const char ip[], int port);
-    int connect(std::string& err, const char node_name[], const char service_name[]);
+    int connect(std::string& err, const char node_name[], const char service_name[], int timeout);
 
     void set_send_cache(uint32_t token, size_t size);
     void set_recv_cache(uint32_t token, size_t size);
@@ -70,7 +70,7 @@ public:
     bool get_remote_ip(uint32_t token, std::string& ip);
 
     void set_accept_callback(uint32_t token, const std::function<void(uint32_t)>& cb);
-    void set_connect_callback(uint32_t token, const std::function<void()>& cb);
+    void set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb);
     void set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb);
     void set_error_callback(uint32_t token, const std::function<void(const char*)>& cb);
 

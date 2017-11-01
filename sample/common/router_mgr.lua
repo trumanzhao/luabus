@@ -6,6 +6,8 @@ require("common/tools");
 
 --master= nil;
 routers = routers or {};
+connect_wait_time = 2000;
+reconnect_time = 5;
 
 function setup(service_name)
     local args = hive.args;
@@ -27,7 +29,7 @@ function setup(service_name)
 end
 
 function connect(node)
-    local socket = socket_mgr.connect(node.ip, node.port);
+    local socket = socket_mgr.connect(node.ip, node.port, connect_wait_time);
     socket.on_call = function(msg, ...)
         node.alive_time = hive.now;
         if not msg then
@@ -49,17 +51,18 @@ function connect(node)
     end
 
     socket.on_error = function(err)
-        node.socket = nil;
-        if not node.alive then
-            log_err("failed to connect router %s:%s", node.ip, node.port);
-            return;
-        end
         log_err("router lost %s:%s, err=%s", node.ip, node.port, err);
+        node.socket = nil;
         node.alive = false;
         switch_master();
     end
 
-    socket.on_connected = function()
+    socket.on_connect = function(ok, reason)
+		if not ok then
+			node.socket = nil;
+            log_err("failed to connect router %s:%s, reason=%s", node.ip, node.port, reason);
+			return;
+		end
         node.alive = true;
         node.alive_time = hive.now;
         socket.call("register", hive.id);
@@ -150,7 +153,7 @@ function update(frame)
 
         if node.socket == nil then
             if hive.now > node.next_connect_time then
-                node.next_connect_time = hive.now + 3;
+                node.next_connect_time = hive.now + reconnect_time;
                 connect(node);
             end
         end

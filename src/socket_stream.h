@@ -19,13 +19,13 @@ struct socket_stream : public socket_object
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
     bool accept_socket(socket_t fd, const char ip[]);
-    void connect(const char node_name[], const char service_name[]) override { m_node_name = node_name; m_service_name = service_name; };
+    void connect(const char node_name[], const char service_name[], int timeout);
     bool update(int64_t now) override;
     bool do_connect();
     void try_connect();
     void set_package_callback(const std::function<void(char*, size_t)>& cb) override { m_package_cb = cb; }
     void set_error_callback(const std::function<void(const char*)>& cb) override { m_error_cb = cb; }
-    void set_connect_callback(const std::function<void()>& cb) override { m_connect_cb = cb; }
+    void set_connect_callback(const std::function<void(bool, const char*)>& cb) override { m_connect_cb = cb; }
     void set_send_cache(size_t size) override { m_send_buffer->resize(size); }
     void set_recv_cache(size_t size) override { m_recv_buffer->resize(size); }
     void set_timeout(int duration) override { m_timeout = duration; }
@@ -46,7 +46,8 @@ struct socket_stream : public socket_object
     void do_recv(size_t max_len, bool is_eof);
 
     void dispatch_package();
-    void call_error(const char err[]);
+    void on_error(const char err[]);
+    void on_connect(bool ok, const char reason[]);
 
     socket_mgr_impl* m_mgr = nullptr;
     socket_t m_socket = INVALID_SOCKET;
@@ -60,7 +61,8 @@ struct socket_stream : public socket_object
     char m_ip[INET6_ADDRSTRLEN];
     bool m_connected = false;
     int m_timeout = -1;
-    int64_t m_alive_time = get_time_ms();
+    int64_t m_last_recv_time = 0;
+    int64_t m_connecting_time = 0;
 
 #ifdef _MSC_VER
     LPFN_CONNECTEX m_connect_func = nullptr;
@@ -71,5 +73,5 @@ struct socket_stream : public socket_object
 
     std::function<void(char*, size_t)> m_package_cb;
     std::function<void(const char*)> m_error_cb;
-    std::function<void()> m_connect_cb;
+    std::function<void(bool, const char*)> m_connect_cb;
 };

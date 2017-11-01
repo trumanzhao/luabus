@@ -61,6 +61,7 @@ int lua_socket_mgr::connect(lua_State* L)
 {
     const char* ip = lua_tostring(L, 1);
     const char* port = lua_tostring(L, 2);
+    int timeout = (int)lua_tonumber(L, 3);
     if (ip == nullptr || port == nullptr)
     {
         lua_pushnil(L);
@@ -69,7 +70,7 @@ int lua_socket_mgr::connect(lua_State* L)
     }
 
     std::string err;
-    int token = m_mgr->connect(err, ip, port);
+    int token = m_mgr->connect(err, ip, port, timeout);
     if (token == 0)
     {
         lua_pushnil(L);

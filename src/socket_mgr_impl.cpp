@@ -257,7 +257,7 @@ Exit0:
     return 0;
 }
 
-int socket_mgr_impl::connect(std::string& err, const char node_name[], const char service_name[])
+int socket_mgr_impl::connect(std::string& err, const char node_name[], const char service_name[], int timeout)
 {
     if (is_full())
     {
@@ -273,7 +273,7 @@ int socket_mgr_impl::connect(std::string& err, const char node_name[], const cha
     socket_stream* stm = new socket_stream(this);
 #endif
 
-    stm->connect(node_name, service_name);
+    stm->connect(node_name, service_name, timeout);
 
     int token = new_token();
     m_objects[token] = stm;
@@ -353,7 +353,7 @@ void socket_mgr_impl::set_accept_callback(uint32_t token, const std::function<vo
     }
 }
 
-void socket_mgr_impl::set_connect_callback(uint32_t token, const std::function<void()>& cb)
+void socket_mgr_impl::set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb)
 {
     auto node = get_object(token);
     if (node)
