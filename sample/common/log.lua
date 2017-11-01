@@ -17,7 +17,6 @@ function _G.log_close()
     end
 end
 
-last_dir = last_dir or "";
 local function log_write(cate, fmt, ...)
     local now = os.time();
     local time = os.date("%H:%M:%S", now);
@@ -32,21 +31,19 @@ local function log_write(cate, fmt, ...)
         io.stdout:write(line);
     end    
 
-    local log_dir = os.date("log/%m%d", now);
-    if log_file == nil or log_line_count >= log_max_line or log_dir ~= last_dir then
+    if log_file == nil or log_line_count >= log_max_line then
         if log_file then
             log_file:close();
         end
         lfs.mkdir("log");
-        lfs.mkdir(log_dir);
-        last_dir = log_dir;
-        time = os.date("%H_%M_%S", now);
-        local filename = string.format("%s/%s_%s.log", log_dir, log_filename or "out", time);
+        time = os.date("%m%d-%H-%M-%S", now);
+        local filename = string.format("log/%s-%s.log", log_filename or "out", time);
         log_file = io.open(filename, "w");
         if log_file == nil then
             return;
         end
         log_file:setvbuf("no");
+		log_line_count = 0;
     end
 
     if not log_file:write(line) then
