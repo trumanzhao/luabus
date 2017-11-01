@@ -112,5 +112,8 @@ function c2s.login_req(ss)
 	ss.call("login_res", "ok", hotfix, node.ip, node.port);
 end
 
+function s2s.test(svr, param)
+    call_target(svr, "test", param);
+end
 
 

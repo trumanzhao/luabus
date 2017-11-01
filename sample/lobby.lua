@@ -66,13 +66,37 @@ hive.run = function()
     end
 end
 
+onway_count = onway_count or 0;
+gateway_id = make_service_id(2, 1);
+
+speed = speed or 10000;
+speedct = speedct or 0;
+
 function on_tick(frame)
     if frame % 10  == 0 then
         call_router_all("heartbeat", nil);
+
+        speed = speed * 0.9 + speedct * 0.1;
+        speedct = 0;
+    end
+
+    if frame % 30 == 0 then
+        log_debug("speed=%s", speed);
     end
 
     router_mgr.update(frame);
     session_mgr.update(frame);
+
+    if router_mgr.master and onway_count < 10 then
+        --message speed test
+        --call_target(gateway_id, "test", hive.id, onway_count);
+        onway_count = onway_count + 1;
+    end
+end
+
+function s2s.test(param)
+    call_target(gateway_id, "test", hive.id, param);
+    speedct = speedct + 1;
 end
 
 function c2s.hello(ss, txt)
