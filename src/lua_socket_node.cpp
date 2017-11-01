@@ -101,7 +101,7 @@ int lua_socket_node::forward_target(lua_State* L)
 
     uint32_t service_id = (uint32_t)lua_tointeger(L, 1);
     BYTE svr_id_data[MAX_VARINT_SIZE];
-    size_t svr_id_len = encode_u64(msg_id_data, sizeof(msg_id_data), service_id);
+    size_t svr_id_len = encode_u64(svr_id_data, sizeof(svr_id_data), service_id);
 
     size_t data_len = 0;
     void* data = m_archiver->save(&data_len, L, 2, top);
