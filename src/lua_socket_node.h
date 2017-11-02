@@ -31,6 +31,7 @@ struct lua_socket_node final
     void set_send_cache(size_t size) { m_mgr->set_send_cache(m_token, size); }
     void set_recv_cache(size_t size) { m_mgr->set_recv_cache(m_token, size); }
     void set_timeout(int ms) { m_mgr->set_timeout(m_token, ms); }
+    void set_nodelay(int flag) { m_mgr->set_nodelay(m_token, flag); }
 
 private:
     void on_recv(char* data, size_t data_len);

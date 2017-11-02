@@ -24,6 +24,7 @@ struct socket_object
     virtual void set_send_cache(size_t size) { }
     virtual void set_recv_cache(size_t size) { }
     virtual void set_timeout(int duration) { }
+    virtual void set_nodelay(int flag) { }
     virtual void send(const void* data, size_t data_len) { }
     virtual void sendv(const sendv_item items[], int count) { };
     virtual void set_accept_callback(const std::function<void(int)>& cb) { }
@@ -64,6 +65,7 @@ public:
     void set_send_cache(uint32_t token, size_t size);
     void set_recv_cache(uint32_t token, size_t size);
     void set_timeout(uint32_t token, int duration);
+    void set_nodelay(uint32_t token, int flag);
     void send(uint32_t token, const void* data, size_t data_len);
     void sendv(uint32_t token, const sendv_item items[], int count);
     void close(uint32_t token);

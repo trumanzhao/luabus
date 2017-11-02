@@ -19,22 +19,28 @@
 #endif
 #if defined(__linux) || defined(__APPLE__)
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #endif
 #include <string.h>
 #include "tools.h"
 #include "socket_helper.h"
 
+void set_no_delay(socket_t fd, int enable)
+{
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
+}
+
 #if defined(__linux) || defined(__APPLE__)
-void set_none_block(socket_t fd)
+void set_no_block(socket_t fd)
 {
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
 }
 #endif
 
 #ifdef _MSC_VER
-void set_none_block(socket_t fd)
+void set_no_block(socket_t fd)
 {
     u_long  opt = 1;
     ioctlsocket(fd, FIONBIO, &opt);

@@ -31,6 +31,7 @@ public:
     void set_send_cache(uint32_t token, size_t size);
     void set_recv_cache(uint32_t token, size_t size);
     void set_timeout(uint32_t token, int duration); // 设置超时时间,默认-1,即永不超时
+    void set_nodelay(uint32_t token, int flag); 
     void send(uint32_t token, const void* data, size_t data_len);
     void sendv(uint32_t token, const sendv_item items[], int count);
     void close(uint32_t token);

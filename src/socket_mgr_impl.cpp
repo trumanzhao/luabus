@@ -227,7 +227,7 @@ int socket_mgr_impl::listen(std::string& err, const char ip[], int port)
     fd = socket(addr.ss_family, SOCK_STREAM, IPPROTO_IP);
     FAILED_JUMP(fd != INVALID_SOCKET);
 
-    set_none_block(fd);
+    set_no_block(fd);
 
     ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&one, sizeof(one));
     FAILED_JUMP(ret != SOCKET_ERROR);
@@ -304,6 +304,15 @@ void socket_mgr_impl::set_timeout(uint32_t token, int duration)
     if (node)
     {
         node->set_timeout(duration);
+    }
+}
+
+void socket_mgr_impl::set_nodelay(uint32_t token, int flag)
+{
+    auto node = get_object(token);
+    if (node)
+    {
+        node->set_nodelay(flag);
     }
 }
 
