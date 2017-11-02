@@ -81,8 +81,9 @@ struct io_buffer
             if (try_free && m_buffer != nullptr)
             {
                 delete[] m_buffer;
-                m_data_begin = m_data_end = m_buffer = nullptr;
+                m_buffer = nullptr;
             }
+            m_data_begin = m_data_end = m_buffer;
         }
     }
 
