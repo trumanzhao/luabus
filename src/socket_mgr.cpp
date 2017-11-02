@@ -41,9 +41,10 @@ bool socket_mgr::setup(int max_connection)
 int socket_mgr::wait(int timeout){ return m_impl->wait(timeout); }
 int socket_mgr::listen(std::string& err, const char ip[], int port){ return m_impl->listen(err, ip, port); }
 int socket_mgr::connect(std::string& err, const char node_name[], const char service_name[], int timeout){ return m_impl->connect(err, node_name, service_name, timeout); }
-void socket_mgr::set_send_cache(uint32_t token, size_t size){ m_impl->set_send_cache(token, size); }
-void socket_mgr::set_recv_cache(uint32_t token, size_t size){ m_impl->set_recv_cache(token, size); }
+void socket_mgr::set_send_buffer_size(uint32_t token, size_t size){ m_impl->set_send_buffer_size(token, size); }
+void socket_mgr::set_recv_buffer_size(uint32_t token, size_t size){ m_impl->set_recv_buffer_size(token, size); }
 void socket_mgr::set_timeout(uint32_t token, int duration){ m_impl->set_timeout(token, duration); }
+void socket_mgr::set_nodelay(uint32_t token, int flag){ m_impl->set_nodelay(token, flag); }
 void socket_mgr::send(uint32_t token, const void* data, size_t data_len){ m_impl->send(token, data, data_len); }
 void socket_mgr::sendv(uint32_t token, const sendv_item items[], int count){ m_impl->sendv(token, items, count); }
 void socket_mgr::close(uint32_t token){ m_impl->close(token); }
@@ -52,3 +53,4 @@ void socket_mgr::set_accept_callback(uint32_t token, const std::function<void(ui
 void socket_mgr::set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb){ m_impl->set_connect_callback(token, cb); }
 void socket_mgr::set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb){ m_impl->set_package_callback(token, cb); }
 void socket_mgr::set_error_callback(uint32_t token, const std::function<void(const char*)>& cb){ m_impl->set_error_callback(token, cb); }
+

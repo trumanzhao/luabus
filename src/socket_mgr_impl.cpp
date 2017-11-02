@@ -280,21 +280,21 @@ int socket_mgr_impl::connect(std::string& err, const char node_name[], const cha
     return token;
 }
 
-void socket_mgr_impl::set_send_cache(uint32_t token, size_t size)
+void socket_mgr_impl::set_send_buffer_size(uint32_t token, size_t size)
 {
     auto node = get_object(token);
-    if (node)
+    if (node && size > 0)
     {
-        node->set_send_cache(size);
+        node->set_send_buffer_size(size);
     }
 }
 
-void socket_mgr_impl::set_recv_cache(uint32_t token, size_t size)
+void socket_mgr_impl::set_recv_buffer_size(uint32_t token, size_t size)
 {
     auto node = get_object(token);
-    if (node)
+    if (node && size > 0)
     {
-        node->set_recv_cache(size);
+        node->set_recv_buffer_size(size);
     }
 }
 

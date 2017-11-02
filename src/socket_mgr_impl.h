@@ -21,8 +21,8 @@ struct socket_object
     virtual void close() final { m_closed = true; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char node_name[], const char service_name[]) { }
-    virtual void set_send_cache(size_t size) { }
-    virtual void set_recv_cache(size_t size) { }
+    virtual void set_send_buffer_size(size_t size) { }
+    virtual void set_recv_buffer_size(size_t size) { }
     virtual void set_timeout(int duration) { }
     virtual void set_nodelay(int flag) { }
     virtual void send(const void* data, size_t data_len) { }
@@ -62,8 +62,8 @@ public:
     int listen(std::string& err, const char ip[], int port);
     int connect(std::string& err, const char node_name[], const char service_name[], int timeout);
 
-    void set_send_cache(uint32_t token, size_t size);
-    void set_recv_cache(uint32_t token, size_t size);
+    void set_send_buffer_size(uint32_t token, size_t size);
+    void set_recv_buffer_size(uint32_t token, size_t size);
     void set_timeout(uint32_t token, int duration);
     void set_nodelay(uint32_t token, int flag);
     void send(uint32_t token, const void* data, size_t data_len);

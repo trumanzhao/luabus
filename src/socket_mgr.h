@@ -28,8 +28,8 @@ public:
     // 注意: connect总是异步的,需要通过回调函数确认连接成功后,才能发送数据
     int connect(std::string& err, const char node_name[], const char service_name[], int timeout);
 
-    void set_send_cache(uint32_t token, size_t size);
-    void set_recv_cache(uint32_t token, size_t size);
+    void set_send_buffer_size(uint32_t token, size_t size);
+    void set_recv_buffer_size(uint32_t token, size_t size);
     void set_timeout(uint32_t token, int duration); // 设置超时时间,默认-1,即永不超时
     void set_nodelay(uint32_t token, int flag); 
     void send(uint32_t token, const void* data, size_t data_len);
@@ -44,3 +44,4 @@ public:
 private:
     std::shared_ptr<class socket_mgr_impl> m_impl;
 };
+
