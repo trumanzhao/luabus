@@ -15,7 +15,7 @@ luabus是一个为LUA RPC服务集群提供网络支持的基础库,主要分为
 - Linux: 需要自行编译安装lua.
 
 ## 网络
-首先,你需要一个socket\_mgr对象:
+首先需要一个socket\_mgr对象:
 
 ```lua
 socket_mgr = hive.create_socket_mgr(最大句柄数);
@@ -61,6 +61,17 @@ stream.on_call = function (msg, ...)
     --收到对端消息时触发.
     --通常这里是以...为参数调用msg对应的函数过程.
 end
+```
+
+其他方法:
+```lua
+--设置多久没收到消息就超时,默认不超时
+stream.set_timeout(2000);
+--设置nodelay属性,默认设置为true
+stream.set_nodelay(true);
+--设置收发缓冲区,至少应该可以容纳一条消息,默认64K
+stream.set_recv_buffer_size(1024 * 64);
+stream.set_send_buffer_size(1024 * 64);
 ```
 
 主动断开:
@@ -109,7 +120,7 @@ stream.close();
 通过socket_mgr.register接口可以控制内部的路由表.
 
 ```lua
---id,服务进程的id,即service\_id,32位整数
+--id,服务进程的id,即service_id,32位整数
 --token,连接的唯一标识(stream.token),传入0表示保留空位,传入nil表示从路由表删除
 --is_master,是否master
 socket_mgr.register(id, token, is_master);
