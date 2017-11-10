@@ -27,9 +27,9 @@ if not hive.init_flag then
     hive.print = log_info;
     _G.print = log_debug;
     _G.socket_mgr = lbus.create_socket_mgr(args.connections or 1024);
-	_G.redis = lredis.create_agent();
+    _G.redis = lredis.create_agent();
 
-	redis.connect("127.0.0.1", 6379, 1000);
+    redis.connect("127.0.0.1", 6379, 1000);
 
     hive.args = args;
     hive.optind = optind;
@@ -46,19 +46,19 @@ collectgarbage("stop");
 import("dbagent/lease_mgr.lua");
 
 redis.on_connect = function(ok)
-	log_info("connect redis server ... %s", ok and "ok" or "failed");
-	if ok then
-		redis.command("set", "rolename:123", "tom");
-		redis.command("get", "rolename:123");
-	end
+    log_info("connect redis server ... %s", ok and "ok" or "failed");
+    if ok then
+        redis.command("set", "rolename:123", "tom");
+        redis.command("get", "rolename:123");
+    end
 end
 
 redis.on_disconnect = function()
-	log_err("db connection lost !");
+    log_err("db connection lost !");
 end
 
 redis.on_reply = function(reply)
-	log_tree("reply", reply);
+    log_tree("reply", reply);
 end
 
 hive.run = function()
