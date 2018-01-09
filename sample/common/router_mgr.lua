@@ -57,10 +57,10 @@ function connect(node)
         switch_master();
     end
 
-    socket.on_connect = function(ok, reason)
-		if not ok then
+    socket.on_connect = function(res)
+		if res ~= "ok" then
 			node.socket = nil;
-            log_err("failed to connect router %s:%s, reason=%s", node.ip, node.port, reason);
+            log_err("failed to connect router %s:%s, reason=%s", node.ip, node.port, res);
 			return;
 		end
         node.alive = true;

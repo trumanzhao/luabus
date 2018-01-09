@@ -61,7 +61,11 @@ function do_connect(addr)
         os.exit(1);
     end
 
-    socket.on_connect = function()
+    socket.on_connect = function(res)
+        if res ~= "ok" then
+            log_err("connect failed: %s", res);
+            return;
+        end
         log_info("connect ok !");
         socket.call("login_req");
     end

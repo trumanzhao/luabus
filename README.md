@@ -14,11 +14,16 @@ luabus是一个为LUA RPC服务集群提供网络支持的基础库,主要分为
 - MacOS: 需要自行编译安装lua.
 - Linux: 需要自行编译安装lua.
 
+## 性能指标
+
+目前尚未专门为性能做测试及优化,只是为了简单好用.  
+
 ## 网络
 首先需要一个socket\_mgr对象:
 
 ```lua
-socket_mgr = hive.create_socket_mgr(最大句柄数);
+lbus = require("lbus");
+socket_mgr = lbus.create_socket_mgr(最大句柄数);
 --用户需要在主循环中调用wait函数,比如:
 --其参数为最大阻塞时长(实际是传给epoll_wait之类函数),单位ms.
 socket_mgr.wait(50);
@@ -29,6 +34,17 @@ socket_mgr.wait(50);
 ```lua
 --注意保持listener的生存期,一旦被gc,则端口就自动关了
 listener = mgr.listen("127.0.0.1", 8080);
+
+--设置accept回调
+listener.on_accept = function(stream)
+    stream.on_call = function(msg, ...)
+        -- ...
+    end
+
+    stream.on_error = function(err)
+        -- ...
+    end
+end
 ```
 
 发起连接:
@@ -39,8 +55,9 @@ listener = mgr.listen("127.0.0.1", 8080);
 --connect(ip, port, timeout)
 stream = mgr.connect("127.0.0.1", 8080, 2000);
 --设置连接事件回调:
-stream.on_connect = function(ok, reason)
-    --如果连接失败,则reason表明了原因
+stream.on_connect = function(result)
+    --如果连接成功,result为"ok"
+    --否则,result表明具体的错误
 end
 ```
 
