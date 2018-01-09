@@ -19,9 +19,14 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STR
     set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
 endif()
 
-set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH false)
 
 add_library(lbus SHARED ${lbus_src})
+
+set_target_properties(lbus PROPERTIES PREFIX "")
+if (APPLE)
+    set_target_properties(lbus PROPERTIES SUFFIX ".so")
+endif()
 
 install(TARGETS lbus RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 
