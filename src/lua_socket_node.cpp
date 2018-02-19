@@ -172,6 +172,8 @@ int lua_socket_node::forward_hash(lua_State* L)
     uint32_t hash_key = 0;
     if (type == LUA_TNUMBER)
     {
+        if (!lua_isinteger(L, 2))
+            return 0;
         hash_key = (uint32_t)lua_tointeger(L, 2);
     }
     else if (type == LUA_TSTRING)
