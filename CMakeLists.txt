@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(lbus)
 aux_source_directory(src lbus_src)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++11" SUPPORT_CXX11)
