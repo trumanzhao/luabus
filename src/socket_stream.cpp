@@ -30,6 +30,14 @@
 #include "socket_mgr_impl.h"
 #include "socket_stream.h"
 
+#ifdef __linux
+static const int s_send_flag = MSG_NOSIGNAL;
+#endif
+
+#if defined(_MSC_VER) || defined(__APPLE__)
+static const int s_send_flag = 0;
+#endif
+
 #ifdef _MSC_VER
 socket_stream::socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func)
 {
@@ -270,6 +278,11 @@ void socket_stream::try_connect()
             continue;
         }
 
+#ifdef __APPLE__
+        int opt = 1;
+        setsockopt(m_socket, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif        
+
         set_no_block(m_socket);
         set_no_delay(m_socket, 1);
         get_ip_string(m_ip, sizeof(m_ip), m_next->ai_addr, m_next->ai_addrlen);
@@ -336,7 +349,7 @@ void socket_stream::stream_send(const char* data, size_t data_len)
 
     while (data_len > 0)
     {
-        int send_len = ::send(m_socket, data, (int)data_len, 0);
+        int send_len = ::send(m_socket, data, (int)data_len, s_send_flag);
         if (send_len == SOCKET_ERROR)
         {
             int err = get_socket_error();
@@ -499,7 +512,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
         }
 
         size_t try_len = std::min<size_t>(data_len, max_len - total_send);
-        int send_len = ::send(m_socket, (char*)data, (int)try_len, 0);
+        int send_len = ::send(m_socket, (char*)data, (int)try_len, s_send_flag);
         if (send_len == SOCKET_ERROR)
         {
             int err = get_socket_error();

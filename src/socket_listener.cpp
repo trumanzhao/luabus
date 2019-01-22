@@ -247,6 +247,11 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof)
             continue;
         }
 
+#ifdef __APPLE__
+        int opt = 1;
+        setsockopt(m_socket, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
+
         get_ip_string(ip, sizeof(ip), &addr, (size_t)addr_len);
         set_no_block(fd);
         set_no_delay(fd, 1);
