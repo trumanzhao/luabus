@@ -8,9 +8,9 @@ luabus是一个为LUA RPC服务集群提供网络支持的基础库,主要分为
 
 ## 编译环境
 
-目前支持Windows, Linux, MacOS三平台,编译器必须支持C++14.
+目前支持Windows, Linux, MacOS三平台,编译器必须支持C++17.
 
-- Windows: Visual studio 2015以上版本,需要自行编译lua的dll库,或者用win64目录下的库文件.
+- Windows: Visual studio 2017以上版本,需要自行编译lua的dll库.
 - MacOS: 需要自行编译安装lua.
 - Linux: 需要自行编译安装lua.
 
