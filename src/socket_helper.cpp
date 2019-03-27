@@ -134,13 +134,3 @@ bool get_ip_string(char ip[], size_t ip_size, const void* addr, size_t addr_len)
     return false;
 }
 
-bool check_can_write(socket_t fd, int timeout)
-{
-    timeval tv = { timeout / 1000, 1000 * (timeout % 1000) };
-    fd_set wset;
-
-    FD_ZERO(&wset);
-    FD_SET(fd, &wset);
-
-    return select((int)fd + 1, nullptr, &wset, nullptr, timeout >= 0 ? &tv : nullptr) == 1;
-}

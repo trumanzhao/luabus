@@ -26,9 +26,6 @@ bool make_ip_addr(sockaddr_storage* addr, size_t* len, const char ip[], int port
 // ip字符串建议大小: char ip[INET6_ADDRSTRLEN];
 bool get_ip_string(char ip[], size_t ip_size, const void* addr, size_t addr_len);
 
-// timeout: 单位ms,传入-1表示阻塞到永远
-bool check_can_write(socket_t fd, int timeout);
-
 void set_no_block(socket_t fd);
 void set_no_delay(socket_t fd, int enable);
 

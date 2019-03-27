@@ -11,6 +11,11 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" )
+include_directories("/usr/local/include")
+link_directories("/usr/local/lib")
+endif()
+
 set(CMAKE_MACOSX_RPATH 0)
 
 find_package(luna REQUIRED)
