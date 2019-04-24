@@ -552,7 +552,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
         m_send_buffer->pop_data((size_t)send_len);
     }
 
-    m_send_buffer->regularize(true);
+    m_send_buffer->compact(true);
 
     if (is_eof || max_len == 0)
     {
@@ -632,7 +632,6 @@ void socket_stream::dispatch_package()
         if (header_len == 0)
             break;
 
-        // 数据包还没有收完整
         if (data_len < header_len + package_size)
             break;
 
@@ -642,7 +641,7 @@ void socket_stream::dispatch_package()
         m_recv_buffer->pop_data(header_len + (size_t)package_size);
     }
 
-    m_recv_buffer->regularize();
+    m_recv_buffer->compact();
 }
 
 void socket_stream::on_error(const char err[])

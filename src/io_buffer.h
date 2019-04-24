@@ -64,7 +64,7 @@ struct io_buffer
         m_data_begin += uLen;
     }
 
-    void regularize(bool try_free = false)
+    void compact(bool try_free = false)
     {
         size_t data_len = (size_t)(m_data_end - m_data_begin);
         if (data_len > 0)
