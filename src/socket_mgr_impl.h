@@ -81,6 +81,7 @@ public:
     bool watch_connecting(socket_t fd, socket_object* object);
     bool watch_connected(socket_t fd, socket_object* object);
     bool watch_send(socket_t fd, socket_object* object, bool enable);
+    void unwatch(socket_t fd);
     int accept_stream(socket_t fd, const char ip[]);
 
     void increase_count() { m_count++; }

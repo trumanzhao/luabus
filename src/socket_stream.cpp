@@ -59,6 +59,7 @@ socket_stream::~socket_stream()
 {
     if (m_socket != INVALID_SOCKET)
     {
+        m_mgr->unwatch(m_socket);
         close_socket_handle(m_socket);
         m_socket = INVALID_SOCKET;
     }
@@ -105,6 +106,7 @@ bool socket_stream::update(int64_t now)
     {
         if (m_socket != INVALID_SOCKET)
         {
+            m_mgr->unwatch(m_socket);
             close_socket_handle(m_socket);
             m_socket = INVALID_SOCKET;
         }
@@ -485,6 +487,7 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof)
     }
 
     // socket连接失败,还可以继续dns解析的下一个地址继续尝试
+    m_mgr->unwatch(m_socket);
     close_socket_handle(m_socket);
     m_socket = INVALID_SOCKET;
     if (m_next == nullptr)
@@ -652,6 +655,7 @@ void socket_stream::on_error(const char err[])
         // kqueue实现下,如果eof时不及时关闭或unwatch,则会触发很多次eof
         if (m_socket != INVALID_SOCKET)
         {
+            m_mgr->unwatch(m_socket);
             close_socket_handle(m_socket);
             m_socket = INVALID_SOCKET;
         }
@@ -676,6 +680,7 @@ void socket_stream::on_connect(bool ok, const char reason[])
         {
             if (m_socket != INVALID_SOCKET)
             {
+                m_mgr->unwatch(m_socket);
                 close_socket_handle(m_socket);
                 m_socket = INVALID_SOCKET;
             }
