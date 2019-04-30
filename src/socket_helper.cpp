@@ -37,6 +37,11 @@ void set_no_block(socket_t fd)
 {
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
 }
+
+void set_close_on_exec(socket_t fd)
+{
+    fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+}
 #endif
 
 #ifdef _MSC_VER
@@ -45,6 +50,8 @@ void set_no_block(socket_t fd)
     u_long  opt = 1;
     ioctlsocket(fd, FIONBIO, &opt);
 }
+
+void set_close_on_exec(socket_t fd){ }
 
 static char s_zero = 0;
 bool wsa_send_empty(socket_t fd, WSAOVERLAPPED& ovl)

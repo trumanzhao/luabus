@@ -28,4 +28,6 @@ bool get_ip_string(char ip[], size_t ip_size, const void* addr, size_t addr_len)
 
 void set_no_block(socket_t fd);
 void set_no_delay(socket_t fd, int enable);
+void set_close_on_exec(socket_t fd);
+
 

@@ -284,6 +284,7 @@ void socket_stream::try_connect()
 #endif        
 
         set_no_block(m_socket);
+        set_close_on_exec(m_socket);
         set_no_delay(m_socket, 1);
         get_ip_string(m_ip, sizeof(m_ip), m_next->ai_addr, m_next->ai_addrlen);
 

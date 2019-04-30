@@ -228,6 +228,7 @@ int socket_mgr_impl::listen(std::string& err, const char ip[], int port)
     FAILED_JUMP(fd != INVALID_SOCKET);
 
     set_no_block(fd);
+    set_close_on_exec(fd);
 
     ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&one, sizeof(one));
     FAILED_JUMP(ret != SOCKET_ERROR);

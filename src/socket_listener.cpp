@@ -254,6 +254,7 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof)
 
         get_ip_string(ip, sizeof(ip), &addr, (size_t)addr_len);
         set_no_block(fd);
+        set_close_on_exec(fd);
         set_no_delay(fd, 1);
 
         auto token = m_mgr->accept_stream(fd, ip);
