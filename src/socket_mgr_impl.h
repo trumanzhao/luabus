@@ -26,7 +26,6 @@ struct socket_object
     virtual void set_timeout(int duration) { }
     virtual void set_nodelay(int flag) { }
     virtual void send(const void* data, size_t data_len) { }
-    virtual void sendv(const sendv_item items[], int count) { };
     virtual void set_accept_callback(const std::function<void(int)>& cb) { }
     virtual void set_connect_callback(const std::function<void(bool, const char*)>& cb) { }
     virtual void set_package_callback(const std::function<void(char*, size_t)>& cb) { }
@@ -67,7 +66,6 @@ public:
     void set_timeout(uint32_t token, int duration);
     void set_nodelay(uint32_t token, int flag);
     void send(uint32_t token, const void* data, size_t data_len);
-    void sendv(uint32_t token, const sendv_item items[], int count);
     void close(uint32_t token);
     bool get_remote_ip(uint32_t token, std::string& ip);
 

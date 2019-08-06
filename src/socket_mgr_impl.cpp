@@ -326,15 +326,6 @@ void socket_mgr_impl::send(uint32_t token, const void* data, size_t data_len)
     }
 }
 
-void socket_mgr_impl::sendv(uint32_t token, const sendv_item items[], int count)
-{
-    auto node = get_object(token);
-    if (node)
-    {
-        node->sendv(items, count);
-    }
-}
-
 void socket_mgr_impl::close(uint32_t token)
 {
     auto node = get_object(token);

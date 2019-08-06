@@ -46,7 +46,6 @@ void socket_mgr::set_recv_buffer_size(uint32_t token, size_t size){ m_impl->set_
 void socket_mgr::set_timeout(uint32_t token, int duration){ m_impl->set_timeout(token, duration); }
 void socket_mgr::set_nodelay(uint32_t token, int flag){ m_impl->set_nodelay(token, flag); }
 void socket_mgr::send(uint32_t token, const void* data, size_t data_len){ m_impl->send(token, data, data_len); }
-void socket_mgr::sendv(uint32_t token, const sendv_item items[], int count){ m_impl->sendv(token, items, count); }
 void socket_mgr::close(uint32_t token){ m_impl->close(token); }
 bool socket_mgr::get_remote_ip(uint32_t token, std::string& ip){ return m_impl->get_remote_ip(token, ip); }
 void socket_mgr::set_accept_callback(uint32_t token, const std::function<void(uint32_t)>& cb){ m_impl->set_accept_callback(token, cb); }
