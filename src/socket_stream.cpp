@@ -308,10 +308,19 @@ void socket_stream::send(const void* data, size_t data_len)
     if (m_closed)
         return;
 
-    BYTE  header[MAX_VARINT_SIZE];
-    size_t header_len = encode_u64(header, sizeof(header), data_len);
-    stream_send((char*)header, header_len);
-    stream_send((char*)data, data_len);
+    unsigned char  buffer[2048];    
+    size_t header_len = encode_u64(buffer, sizeof(buffer), data_len);
+    size_t total_len = header_len + data_len;
+    if (total_len <= sizeof(buffer))
+    {
+        memcpy(buffer + header_len, data, data_len);
+        stream_send((char*)buffer, total_len);    
+    }
+    else
+    {
+        stream_send((char*)buffer, header_len);
+        stream_send((char*)data, data_len);
+    }
 }
 
 void socket_stream::stream_send(const char* data, size_t data_len)
