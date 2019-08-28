@@ -308,31 +308,18 @@ void socket_stream::send(const void* data, size_t data_len)
     if (m_closed)
         return;
 
-    BYTE  header[MAX_VARINT_SIZE];
-    size_t header_len = encode_u64(header, sizeof(header), data_len);
-    stream_send((char*)header, header_len);
-    stream_send((char*)data, data_len);
-}
-
-void socket_stream::sendv(const sendv_item items[], int count)
-{
-    if (m_closed)
-        return;
-
-    size_t data_len = 0;
-    for (int i = 0; i < count; i++)
+    unsigned char  buffer[2048];    
+    size_t header_len = encode_u64(buffer, sizeof(buffer), data_len);
+    size_t total_len = header_len + data_len;
+    if (total_len <= sizeof(buffer))
     {
-        data_len += items[i].len;
+        memcpy(buffer + header_len, data, data_len);
+        stream_send((char*)buffer, total_len);    
     }
-
-    BYTE  header[MAX_VARINT_SIZE];
-    size_t header_len = encode_u64(header, sizeof(header), data_len);
-    stream_send((char*)header, header_len);
-
-    for (int i = 0; i < count; i++)
+    else
     {
-        auto item = items[i];
-        stream_send((char*)item.data, item.len);
+        stream_send((char*)buffer, header_len);
+        stream_send((char*)data, data_len);
     }
 }
 
