@@ -61,7 +61,7 @@ socket_mgr_impl::~socket_mgr_impl()
 #ifdef __linux
     if (m_handle != -1)
     {
-        close(m_handle);
+        ::close(m_handle);
         m_handle = -1;
     }
 #endif
@@ -69,7 +69,7 @@ socket_mgr_impl::~socket_mgr_impl()
 #ifdef __APPLE__
     if (m_handle != -1)
     {
-        close(m_handle);
+        ::close(m_handle);
         m_handle = -1;
     }
 #endif
