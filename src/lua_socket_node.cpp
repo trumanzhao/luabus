@@ -7,16 +7,16 @@
 #include "var_int.h"
 #include "lua_socket_node.h"
 
-EXPORT_CLASS_BEGIN(lua_socket_node)
-EXPORT_LUA_FUNCTION(send)
-EXPORT_LUA_FUNCTION(close)
-EXPORT_LUA_FUNCTION(set_send_buffer_size)
-EXPORT_LUA_FUNCTION(set_recv_buffer_size)
-EXPORT_LUA_FUNCTION(set_timeout)
-EXPORT_LUA_FUNCTION(set_nodelay)
-EXPORT_LUA_STD_STR_AS_R(m_ip, "ip")
-EXPORT_LUA_INT_AS_R(m_token, "token")
-EXPORT_CLASS_END()
+LUA_EXPORT_CLASS_BEGIN(lua_socket_node)
+LUA_EXPORT_METHOD(send)
+LUA_EXPORT_METHOD(close)
+LUA_EXPORT_METHOD(set_send_buffer_size)
+LUA_EXPORT_METHOD(set_recv_buffer_size)
+LUA_EXPORT_METHOD(set_timeout)
+LUA_EXPORT_METHOD(set_nodelay)
+LUA_EXPORT_PROPERTY_AS(m_ip, "ip")
+LUA_EXPORT_PROPERTY_READONLY_AS(m_token, "token")
+LUA_EXPORT_CLASS_END()
 
 lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<lua_archiver>& ar)
     : m_token(token), m_lvm(L), m_mgr(mgr), m_archiver(ar)

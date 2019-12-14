@@ -8,13 +8,13 @@
 #include "lua_socket_mgr.h"
 #include "lua_socket_node.h"
 
-EXPORT_CLASS_BEGIN(lua_socket_mgr)
-EXPORT_LUA_FUNCTION(wait)
-EXPORT_LUA_FUNCTION(listen)
-EXPORT_LUA_FUNCTION(connect)
-EXPORT_LUA_FUNCTION(set_package_size)
-EXPORT_LUA_FUNCTION(set_lz_threshold)
-EXPORT_CLASS_END()
+LUA_EXPORT_CLASS_BEGIN(lua_socket_mgr)
+LUA_EXPORT_METHOD(wait)
+LUA_EXPORT_METHOD(listen)
+LUA_EXPORT_METHOD(connect)
+LUA_EXPORT_METHOD(set_package_size)
+LUA_EXPORT_METHOD(set_lz_threshold)
+LUA_EXPORT_CLASS_END()
 
 lua_socket_mgr::~lua_socket_mgr()
 {
