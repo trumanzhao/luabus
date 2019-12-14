@@ -299,15 +299,6 @@ void socket_mgr_impl::set_recv_buffer_size(uint32_t token, size_t size)
     }
 }
 
-void socket_mgr_impl::set_timeout(uint32_t token, int duration)
-{
-    auto node = get_object(token);
-    if (node)
-    {
-        node->set_timeout(duration);
-    }
-}
-
 void socket_mgr_impl::set_nodelay(uint32_t token, int flag)
 {
     auto node = get_object(token);

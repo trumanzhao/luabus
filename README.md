@@ -78,8 +78,6 @@ end
 
 其他方法:
 ```lua
---设置多久没收到消息就超时,默认不超时
-stream.set_timeout(2000);
 --设置nodelay属性,默认设置为true
 stream.set_nodelay(true);
 --设置收发缓冲区,至少应该可以容纳一条消息,默认64K

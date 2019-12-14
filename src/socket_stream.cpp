@@ -89,7 +89,6 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[])
     safe_cpy(m_ip, ip);
     m_socket = fd;
     m_connected = true;
-    m_last_recv_time = get_time_ms();
     return true;
 }
 
@@ -130,11 +129,6 @@ bool socket_stream::update(int64_t now)
 
         try_connect();
         return true;
-    }
-
-    if (m_timeout > 0 && now - m_last_recv_time > m_timeout)
-    {
-        on_error("timeout");
     }
 
     return true;
@@ -626,7 +620,6 @@ void socket_stream::dispatch_package()
         if (data_len < header_len + package_size)
             break;
 
-        m_last_recv_time = get_time_ms();
         m_package_cb((char*)data + header_len, (size_t)package_size);
 
         m_recv_buffer->pop_data(header_len + (size_t)package_size);
@@ -674,7 +667,6 @@ void socket_stream::on_connect(bool ok, const char reason[])
             m_closed = true;
         }
         m_connected = ok;
-        m_last_recv_time = get_time_ms();
         m_connect_cb(ok, reason);
     }
 }

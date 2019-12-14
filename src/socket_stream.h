@@ -28,7 +28,6 @@ struct socket_stream : public socket_object
     void set_connect_callback(const std::function<void(bool, const char*)>& cb) override { m_connect_cb = cb; }
     void set_send_buffer_size(size_t size) override { m_send_buffer->resize(size); }
     void set_recv_buffer_size(size_t size) override { m_recv_buffer->resize(size); }
-    void set_timeout(int duration) override { m_timeout = duration; }
     void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
     void send(const void* data, size_t data_len) override;
     void stream_send(const char* data, size_t data_len);
@@ -60,8 +59,6 @@ struct socket_stream : public socket_object
     struct addrinfo* m_next = nullptr;
     char m_ip[INET6_ADDRSTRLEN];
     bool m_connected = false;
-    int m_timeout = -1;
-    int64_t m_last_recv_time = 0;
     int64_t m_connecting_time = 0;
 
 #ifdef _MSC_VER
