@@ -29,43 +29,36 @@
 #include "socket_listener.h"
 
 #ifdef _MSC_VER
-socket_listener::socket_listener(socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func)
-{
+socket_listener::socket_listener(socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func) {
     mgr->increase_count();
     m_mgr = mgr;
     m_accept_func = accept_func;
     m_addrs_func = addrs_func;
     memset(m_nodes, 0, sizeof(m_nodes));
-    for (auto& node : m_nodes)
-    {
+    for (auto& node : m_nodes) {
         node.fd = INVALID_SOCKET;
     }
 }
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-socket_listener::socket_listener(socket_mgr_impl* mgr)
-{
+socket_listener::socket_listener(socket_mgr_impl* mgr) {
     mgr->increase_count();
     m_mgr = mgr;
 }
 #endif
 
-socket_listener::~socket_listener()
-{
+socket_listener::~socket_listener() {
 #ifdef _MSC_VER
-    for (auto& node : m_nodes)
-    {
-        if (node.fd != INVALID_SOCKET)
-        {
+    for (auto& node : m_nodes) {
+        if (node.fd != INVALID_SOCKET) {
             close_socket_handle(node.fd);
             node.fd = INVALID_SOCKET;
         }
     }
 #endif
 
-    if (m_socket != INVALID_SOCKET)
-    {
+    if (m_socket != INVALID_SOCKET) {
         m_mgr->unwatch(m_socket);
         close_socket_handle(m_socket);
         m_socket = INVALID_SOCKET;
@@ -73,36 +66,29 @@ socket_listener::~socket_listener()
     m_mgr->decrease_count();
 }
 
-bool socket_listener::setup(socket_t fd)
-{
+bool socket_listener::setup(socket_t fd) {
     m_socket = fd;
     return true;
 }
 
-bool socket_listener::update(int64_t)
-{
-    if (m_closed && m_socket != INVALID_SOCKET)
-    {
+bool socket_listener::update(int64_t) {
+    if (m_closed && m_socket != INVALID_SOCKET) {
         m_mgr->unwatch(m_socket);
         close_socket_handle(m_socket);
         m_socket = INVALID_SOCKET;
     }
 
 #ifdef _MSC_VER
-    if (m_ovl_ref == 0 && !m_closed)
-    {
-        for (auto& node : m_nodes)
-        {
-            if (node.fd == INVALID_SOCKET)
-            {
+    if (m_ovl_ref == 0 && !m_closed) {
+        for (auto& node : m_nodes) {
+            if (node.fd == INVALID_SOCKET) {
                 queue_accept(&node.ovl);
             }
         }
     }
 #endif
 
-    if (m_closed)
-    {
+    if (m_closed) {
 #ifdef _MSC_VER
         return m_ovl_ref != 0;
 #endif
@@ -115,8 +101,7 @@ bool socket_listener::update(int64_t)
 }
 
 #ifdef _MSC_VER
-void socket_listener::on_complete(WSAOVERLAPPED* ovl)
-{
+void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
     m_ovl_ref--;
     if (m_closed)
         return;
@@ -125,8 +110,7 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl)
     assert(node >= m_nodes && node < m_nodes + _countof(m_nodes));
     assert(node->fd != INVALID_SOCKET);
 
-    if (m_mgr->is_full())
-    {
+    if (m_mgr->is_full()) {
         close_socket_handle(node->fd);
         node->fd = INVALID_SOCKET;
         queue_accept(ovl);
@@ -145,12 +129,9 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl)
     set_none_block(node->fd);
 
     auto token = m_mgr->accept_stream(node->fd, ip);
-    if (token == 0)
-    {
+    if (token == 0) {
         close_socket_handle(node->fd);
-    }
-    else
-    {
+    } else {
         m_accept_cb(token);
     }
 
@@ -158,8 +139,7 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl)
     queue_accept(ovl);
 }
 
-void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
-{
+void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
     listen_node* node = CONTAINING_RECORD(ovl, listen_node, ovl);
 
     assert(node >= m_nodes && node < m_nodes + _countof(m_nodes));
@@ -169,13 +149,11 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
     socklen_t listen_addr_len = sizeof(listen_addr);
     getsockname(m_socket, (sockaddr*)&listen_addr, &listen_addr_len);
 
-    while (!m_closed)
-    {
+    while (!m_closed) {
         memset(ovl, 0, sizeof(*ovl));
         // 注,AF_INET6本身是可以支持ipv4的,但是...需要win10以上版本,win7不支持, 所以这里取listen_addr
         node->fd = socket(listen_addr.ss_family, SOCK_STREAM, IPPROTO_IP);
-        if (node->fd == INVALID_SOCKET)
-        {
+        if (node->fd == INVALID_SOCKET) {
             m_closed = true;
             m_error_cb("new-socket-failed");
             return;
@@ -186,11 +164,9 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
         DWORD bytes = 0;
         static_assert(sizeof(sockaddr_storage) >= sizeof(sockaddr_in6) + 16, "buffer too small");
         auto ret = (*m_accept_func)(m_socket, node->fd, node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[1]), &bytes, ovl);
-        if (!ret)
-        {
+        if (!ret) {
             int err = get_socket_error();
-            if (err != ERROR_IO_PENDING)
-            {
+            if (err != ERROR_IO_PENDING) {
                 char txt[MAX_ERROR_TXT];
                 get_error_string(txt, sizeof(txt), err);
                 close_socket_handle(node->fd);
@@ -213,8 +189,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
         get_ip_string(ip, sizeof(ip), remote_addr, (size_t)remote_addr_len);
 
         auto token = m_mgr->accept_stream(node->fd, ip);
-        if (token == 0)
-        {
+        if (token == 0) {
             close_socket_handle(node->fd);
             node->fd = INVALID_SOCKET;
             m_closed = true;
@@ -229,11 +204,9 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-void socket_listener::on_can_recv(size_t max_len, bool is_eof)
-{
+void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
     size_t total_accept = 0;
-    while (total_accept < max_len && !m_closed)
-    {
+    while (total_accept < max_len && !m_closed) {
         sockaddr_storage addr;
         socklen_t addr_len = (socklen_t)sizeof(addr);
         char ip[INET6_ADDRSTRLEN];
@@ -243,8 +216,7 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof)
             break;
 
         total_accept++;
-        if (m_mgr->is_full())
-        {
+        if (m_mgr->is_full()) {
             close_socket_handle(fd);
             continue;
         }
@@ -260,12 +232,9 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof)
         set_no_delay(fd, 1);
 
         auto token = m_mgr->accept_stream(fd, ip);
-        if (token != 0)
-        {
+        if (token != 0) {
             m_accept_cb(token);
-        }
-        else
-        {
+        } else {
             close_socket_handle(fd);
         }
     }

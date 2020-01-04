@@ -37,10 +37,8 @@ inline void sleep_ms(int ms) { std::this_thread::sleep_for(std::chrono::millisec
 time_t get_file_time(const char* file_name);
 
 template <int N>
-void safe_cpy(char (&buffer)[N], const char* str)
-{
-    if (str == nullptr)
-    {
+void safe_cpy(char (&buffer)[N], const char* str) {
+    if (str == nullptr) {
         buffer[0] = 0;
         return;
     }
@@ -50,8 +48,7 @@ void safe_cpy(char (&buffer)[N], const char* str)
 }
 
 #ifdef _MSC_VER
-inline struct tm* localtime_r(const time_t* timep, struct tm* result)
-{
+inline struct tm* localtime_r(const time_t* timep, struct tm* result) {
     errno_t nErr = localtime_s(result, timep);
     return (nErr == 0) ? result : nullptr;
 }
@@ -76,46 +73,37 @@ inline uint64_t get_thread_id() { return (uint64_t)pthread_self(); }
 
 
 #define FAILED_JUMP(C)  \
-    do  \
-    {   \
+    do {   \
         if (!(C)) goto Exit0; \
     } while (0)
 
 #define SAFE_FREE(p)    \
-    do  \
-    {   \
-        if (p)  \
-        {   \
+    do {   \
+        if (p) {   \
             free(p);    \
             (p) = nullptr;  \
         }   \
     } while (0)
 
 #define SAFE_DELETE(p)  \
-    do  \
-    {   \
-        if (p)  \
-        {   \
+    do {   \
+        if (p) {   \
             delete (p);    \
             (p) = nullptr;  \
         }   \
     } while (0)
 
 #define SAFE_DELETE_ARRAY(p)    \
-    do  \
-    {   \
-        if (p)  \
-        {   \
+    do {   \
+        if (p) {   \
             delete[] (p);    \
             (p) = nullptr;  \
         }   \
     } while (0)
 
 #define SAFE_RELEASE(p) \
-    do  \
-    {   \
-        if (p)  \
-        {   \
+    do {   \
+        if (p) {   \
             (p)->release();    \
             (p) = nullptr;  \
         }   \

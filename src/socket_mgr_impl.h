@@ -14,8 +14,7 @@
 #include "socket_helper.h"
 #include "socket_mgr.h"
 
-struct socket_object
-{
+struct socket_object {
     virtual ~socket_object() {};
     virtual bool update(int64_t now) = 0;
     virtual void close() final { m_closed = true; };
@@ -43,8 +42,7 @@ protected:
     bool m_closed = false;
 };
 
-class socket_mgr_impl
-{
+class socket_mgr_impl {
 public:
     socket_mgr_impl();
     ~socket_mgr_impl();
@@ -103,20 +101,16 @@ private:
     std::vector<struct kevent> m_events;
 #endif
 
-    socket_object* get_object(int token)
-    {
+    socket_object* get_object(int token) {
         auto it = m_objects.find(token);
-        if (it != m_objects.end())
-        {
+        if (it != m_objects.end()) {
             return it->second;
         }
         return nullptr;
     }
 
-    uint32_t new_token()
-    {
-        while (++m_token == 0 || m_objects.find(m_token) != m_objects.end())
-        {
+    uint32_t new_token() {
+        while (++m_token == 0 || m_objects.find(m_token) != m_objects.end()) {
             // nothing ...
         }
         return m_token;

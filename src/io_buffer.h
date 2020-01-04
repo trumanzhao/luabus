@@ -9,32 +9,26 @@
 #include <limits.h>
 #include <string.h>
 
-struct io_buffer
-{
+struct io_buffer {
     io_buffer() { }
     ~io_buffer() { SAFE_DELETE_ARRAY(m_buffer); }
 
-    void resize(size_t size)
-    {
+    void resize(size_t size) {
         size_t data_len = 0;
         BYTE* data = peek_data(&data_len);
         if (size == m_buffer_size || size < data_len)
             return;
 
-        if (data_len > 0)
-        {
+        if (data_len > 0) {
             BYTE* pbyBuffer = new BYTE[size];
             memcpy(pbyBuffer, data, data_len);
             delete[] m_buffer;
             m_buffer = pbyBuffer;
             m_data_begin = m_buffer;
             m_data_end = m_data_begin + data_len;
-        }
-        else
-        {
+        } else {
             // 这里只释放而不分配新的缓冲区,在需要用到的时候懒惰分配
-            if (m_buffer != nullptr)
-            {
+            if (m_buffer != nullptr) {
                 delete[] m_buffer;
                 m_buffer = nullptr;
             }
@@ -42,8 +36,7 @@ struct io_buffer
         m_buffer_size = size;
     }
 
-    bool push_data(const void* data, size_t data_len)
-    {
+    bool push_data(const void* data, size_t data_len) {
         if (m_buffer == nullptr)
             alloc_buffer();
 
@@ -58,28 +51,21 @@ struct io_buffer
         return true;
     }
 
-    void pop_data(size_t uLen)
-    {
+    void pop_data(size_t uLen) {
         assert(m_data_begin + uLen <= m_data_end);
         m_data_begin += uLen;
     }
 
-    void compact(bool try_free = false)
-    {
+    void compact(bool try_free = false) {
         size_t data_len = (size_t)(m_data_end - m_data_begin);
-        if (data_len > 0)
-        {
-            if (m_data_begin > m_buffer)
-            {
+        if (data_len > 0) {
+            if (m_data_begin > m_buffer) {
                 memmove(m_buffer, m_data_begin, data_len);
                 m_data_begin = m_buffer;
                 m_data_end = m_data_begin + data_len;
             }
-        }
-        else
-        {
-            if (try_free && m_buffer != nullptr)
-            {
+        } else {
+            if (try_free && m_buffer != nullptr) {
                 delete[] m_buffer;
                 m_buffer = nullptr;
             }
@@ -87,18 +73,15 @@ struct io_buffer
         }
     }
 
-    void clear(bool with_free = false)
-    {
-        if (with_free)
-        {
+    void clear(bool with_free = false) {
+        if (with_free) {
             SAFE_DELETE_ARRAY(m_buffer);
         }
         m_data_begin = m_buffer;
         m_data_end = m_data_begin;
     }
 
-    BYTE* peek_space(size_t* len)
-    {
+    BYTE* peek_space(size_t* len) {
         if (m_buffer == nullptr)
             alloc_buffer();
 
@@ -107,8 +90,7 @@ struct io_buffer
         return m_data_end;
     }
 
-    void pop_space(size_t pop_len)
-    {
+    void pop_space(size_t pop_len) {
         if (m_buffer == nullptr)
             alloc_buffer();
 
@@ -126,15 +108,13 @@ struct io_buffer
             return nullptr;
 
         m_data_end += pop_len;
-        if (space_len)
-        {
+        if (space_len) {
             *space_len = (size_t)(buffer_end - m_data_end);
         }
         return m_data_end;
     }
 
-    BYTE* peek_data(size_t* data_len)
-    {
+    BYTE* peek_data(size_t* data_len) {
         *data_len = (size_t)(m_data_end - m_data_begin);
         return m_data_begin;
     }
@@ -142,8 +122,7 @@ struct io_buffer
     bool empty() { return m_data_end <= m_data_begin; }
 
 private:
-    void alloc_buffer()
-    {
+    void alloc_buffer() {
         m_buffer = new BYTE[m_buffer_size];
         m_data_begin = m_buffer;
         m_data_end = m_data_begin;

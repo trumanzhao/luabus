@@ -33,8 +33,7 @@
 #pragma comment(lib, "Ws2_32.lib")
 #endif
 
-socket_mgr_impl::socket_mgr_impl()
-{
+socket_mgr_impl::socket_mgr_impl() {
 #ifdef _MSC_VER
     WORD    wVersion = MAKEWORD(2, 2);
     WSADATA wsaData;
@@ -42,16 +41,13 @@ socket_mgr_impl::socket_mgr_impl()
 #endif
 }
 
-socket_mgr_impl::~socket_mgr_impl()
-{
-    for (auto& node : m_objects)
-    {
+socket_mgr_impl::~socket_mgr_impl() {
+    for (auto& node : m_objects) {
         delete node.second;
     }
 
 #ifdef _MSC_VER
-    if (m_handle != INVALID_HANDLE_VALUE)
-    {
+    if (m_handle != INVALID_HANDLE_VALUE) {
         CloseHandle(m_handle);
         m_handle = INVALID_HANDLE_VALUE;
     }
@@ -59,24 +55,21 @@ socket_mgr_impl::~socket_mgr_impl()
 #endif
 
 #ifdef __linux
-    if (m_handle != -1)
-    {
+    if (m_handle != -1) {
         ::close(m_handle);
         m_handle = -1;
     }
 #endif
 
 #ifdef __APPLE__
-    if (m_handle != -1)
-    {
+    if (m_handle != -1) {
         ::close(m_handle);
         m_handle = -1;
     }
 #endif
 }
 
-bool socket_mgr_impl::setup(int max_connection)
-{
+bool socket_mgr_impl::setup(int max_connection) {
 #ifdef _MSC_VER
     m_handle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
     if (m_handle == INVALID_HANDLE_VALUE)
@@ -105,8 +98,7 @@ bool socket_mgr_impl::setup(int max_connection)
 }
 
 #ifdef _MSC_VER
-bool socket_mgr_impl::get_socket_funcs()
-{
+bool socket_mgr_impl::get_socket_funcs() {
     bool result = false;
     int ret = 0;
     socket_t fd = INVALID_SOCKET;
@@ -133,8 +125,7 @@ bool socket_mgr_impl::get_socket_funcs()
 
     result = true;
 Exit0:
-    if (fd != INVALID_SOCKET)
-    {
+    if (fd != INVALID_SOCKET) {
         close_socket_handle(fd);
         fd = INVALID_SOCKET;
     }
@@ -142,15 +133,12 @@ Exit0:
 }
 #endif
 
-int socket_mgr_impl::wait(int timeout)
-{
+int socket_mgr_impl::wait(int timeout) {
 #ifdef _MSC_VER
     ULONG event_count = 0;
     int ret = GetQueuedCompletionStatusEx(m_handle, &m_events[0], (ULONG)m_events.size(), &event_count, (DWORD)timeout, false);
-    if (ret)
-    {
-        for (ULONG i = 0; i < event_count; i++)
-        {
+    if (ret) {
+        for (ULONG i = 0; i < event_count; i++) {
             OVERLAPPED_ENTRY& oe = m_events[i];
             auto object = (socket_object*)oe.lpCompletionKey;
             object->on_complete(oe.lpOverlapped);
@@ -160,8 +148,7 @@ int socket_mgr_impl::wait(int timeout)
 
 #ifdef __linux
     int event_count = epoll_wait(m_handle, &m_events[0], (int)m_events.size(), timeout);
-    for (int i = 0; i < event_count; i++)
-    {
+    for (int i = 0; i < event_count; i++) {
         epoll_event& ev = m_events[i];
         auto object = (socket_object*)ev.data.ptr;
         if (ev.events & EPOLLIN) object->on_can_recv();
@@ -174,8 +161,7 @@ int socket_mgr_impl::wait(int timeout)
     time_wait.tv_sec = timeout / 1000;
     time_wait.tv_nsec = (timeout % 1000) * 1000000;
     int event_count = kevent(m_handle, nullptr, 0, &m_events[0], (int)m_events.size(), timeout >= 0 ? &time_wait : nullptr);
-    for (int i = 0; i < event_count; i++)
-    {
+    for (int i = 0; i < event_count; i++) {
         struct kevent& ev = m_events[i];
         auto object = (socket_object*)ev.udata;
         if (ev.filter == EVFILT_READ) object->on_can_recv((size_t)ev.data, (ev.flags & EV_EOF) != 0);
@@ -184,17 +170,14 @@ int socket_mgr_impl::wait(int timeout)
 #endif
 
     int64_t now = get_time_ms();
-    if (now >= m_next_update)
-    {
+    if (now >= m_next_update) {
         // 没必要每次都update
         m_next_update = now + 10;
 
         auto it = m_objects.begin(), end = m_objects.end();
-        while (it != end)
-        {
+        while (it != end) {
             socket_object* object = it->second;
-            if (!object->update(now))
-            {
+            if (!object->update(now)) {
                 it = m_objects.erase(it);
                 delete object;
                 continue;
@@ -205,8 +188,7 @@ int socket_mgr_impl::wait(int timeout)
 	return (int)event_count;
 }
 
-int socket_mgr_impl::listen(std::string& err, const char ip[], int port)
-{
+int socket_mgr_impl::listen(std::string& err, const char ip[], int port) {
     int ret = false;
     socket_t fd = INVALID_SOCKET;
     sockaddr_storage addr;
@@ -240,8 +222,7 @@ int socket_mgr_impl::listen(std::string& err, const char ip[], int port)
     ret = ::listen(fd, 16);
     FAILED_JUMP(ret != SOCKET_ERROR);
 
-    if (watch_listen(fd, listener) && listener->setup(fd))
-    {
+    if (watch_listen(fd, listener) && listener->setup(fd)) {
         int token = new_token();
         m_objects[token] = listener;
         return token;
@@ -250,18 +231,15 @@ int socket_mgr_impl::listen(std::string& err, const char ip[], int port)
 Exit0:
     get_error_string(err, get_socket_error());
     delete listener;
-    if (fd != INVALID_SOCKET)
-    {
+    if (fd != INVALID_SOCKET) {
         close_socket_handle(fd);
         fd = INVALID_SOCKET;
     }
     return 0;
 }
 
-int socket_mgr_impl::connect(std::string& err, const char node_name[], const char service_name[], int timeout)
-{
-    if (is_full())
-    {
+int socket_mgr_impl::connect(std::string& err, const char node_name[], const char service_name[], int timeout) {
+    if (is_full()) {
         err = "too-many-connection";
         return 0;
     }
@@ -281,99 +259,78 @@ int socket_mgr_impl::connect(std::string& err, const char node_name[], const cha
     return token;
 }
 
-void socket_mgr_impl::set_send_buffer_size(uint32_t token, size_t size)
-{
+void socket_mgr_impl::set_send_buffer_size(uint32_t token, size_t size) {
     auto node = get_object(token);
-    if (node && size > 0)
-    {
+    if (node && size > 0) {
         node->set_send_buffer_size(size);
     }
 }
 
-void socket_mgr_impl::set_recv_buffer_size(uint32_t token, size_t size)
-{
+void socket_mgr_impl::set_recv_buffer_size(uint32_t token, size_t size) {
     auto node = get_object(token);
-    if (node && size > 0)
-    {
+    if (node && size > 0) {
         node->set_recv_buffer_size(size);
     }
 }
 
-void socket_mgr_impl::set_nodelay(uint32_t token, int flag)
-{
+void socket_mgr_impl::set_nodelay(uint32_t token, int flag) {
     auto node = get_object(token);
-    if (node)
-    {
+    if (node) {
         node->set_nodelay(flag);
     }
 }
 
-void socket_mgr_impl::send(uint32_t token, const void* data, size_t data_len)
-{
+void socket_mgr_impl::send(uint32_t token, const void* data, size_t data_len) {
     auto node = get_object(token);
-    if (node)
-    {
+    if (node) {
         node->send(data, data_len);
     }
 }
 
-void socket_mgr_impl::close(uint32_t token)
-{
+void socket_mgr_impl::close(uint32_t token) {
     auto node = get_object(token);
-    if (node)
-    {
+    if (node) {
         node->close();
     }
 }
 
-bool socket_mgr_impl::get_remote_ip(uint32_t token, std::string& ip)
-{
+bool socket_mgr_impl::get_remote_ip(uint32_t token, std::string& ip) {
     auto node = get_object(token);
-    if (node)
-    {
+    if (node) {
         return node->get_remote_ip(ip);
     }
     return false;
 }
 
-void socket_mgr_impl::set_accept_callback(uint32_t token, const std::function<void(uint32_t)>& cb)
-{
+void socket_mgr_impl::set_accept_callback(uint32_t token, const std::function<void(uint32_t)>& cb) {
     auto node = get_object(token);
-    if (node)
-    {
+    if (node) {
         node->set_accept_callback(cb);
     }
 }
 
-void socket_mgr_impl::set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb)
-{
+void socket_mgr_impl::set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb) {
     auto node = get_object(token);
-    if (node)
-    {
+    if (node) {
         node->set_connect_callback(cb);
     }
 }
 
-void socket_mgr_impl::set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb)
-{
+void socket_mgr_impl::set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb) {
     auto node = get_object(token);
-    if (node)
-    {
+    if (node) {
         node->set_package_callback(cb);
     }
 }
 
-void socket_mgr_impl::set_error_callback(uint32_t token, const std::function<void(const char*)>& cb)
-{
+void socket_mgr_impl::set_error_callback(uint32_t token, const std::function<void(const char*)>& cb) {
     auto node = get_object(token);
-    if (node)
-    {
+    if (node) {
         node->set_error_callback(cb);
     }
 }
 
-bool socket_mgr_impl::watch_listen(socket_t fd, socket_object* object)
-{
+bool socket_mgr_impl::watch_listen(socket_t fd, socket_object* object) {
 #ifdef _MSC_VER
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
@@ -392,8 +349,7 @@ bool socket_mgr_impl::watch_listen(socket_t fd, socket_object* object)
 #endif
 }
 
-bool socket_mgr_impl::watch_accepted(socket_t fd, socket_object* object)
-{
+bool socket_mgr_impl::watch_accepted(socket_t fd, socket_object* object) {
 #ifdef _MSC_VER
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
@@ -413,8 +369,7 @@ bool socket_mgr_impl::watch_accepted(socket_t fd, socket_object* object)
 #endif
 }
 
-bool socket_mgr_impl::watch_connecting(socket_t fd, socket_object* object)
-{
+bool socket_mgr_impl::watch_connecting(socket_t fd, socket_object* object) {
 #ifdef _MSC_VER
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
@@ -433,8 +388,7 @@ bool socket_mgr_impl::watch_connecting(socket_t fd, socket_object* object)
 #endif
 }
 
-bool socket_mgr_impl::watch_connected(socket_t fd, socket_object* object)
-{
+bool socket_mgr_impl::watch_connected(socket_t fd, socket_object* object) {
 #ifdef _MSC_VER
     return true;
 #endif
@@ -454,8 +408,7 @@ bool socket_mgr_impl::watch_connected(socket_t fd, socket_object* object)
 #endif
 }
 
-bool socket_mgr_impl::watch_send(socket_t fd, socket_object* object, bool enable)
-{
+bool socket_mgr_impl::watch_send(socket_t fd, socket_object* object, bool enable) {
 #ifdef _MSC_VER
     return true;
 #endif
@@ -476,8 +429,7 @@ bool socket_mgr_impl::watch_send(socket_t fd, socket_object* object, bool enable
 
 // 通常情况下,close一个socket后即自动从epoll/kqueue中移除
 // 之所以加一个unwatch显式的移除,是为了避免进程fork带来的问题
-void socket_mgr_impl::unwatch(socket_t fd)
-{
+void socket_mgr_impl::unwatch(socket_t fd) {
 #ifdef __linux
     epoll_event ev;
     ev.data.ptr = nullptr;
@@ -493,11 +445,9 @@ void socket_mgr_impl::unwatch(socket_t fd)
 #endif
 }
 
-int socket_mgr_impl::accept_stream(socket_t fd, const char ip[])
-{
+int socket_mgr_impl::accept_stream(socket_t fd, const char ip[]) {
     auto* stm = new socket_stream(this);
-    if (watch_accepted(fd, stm) && stm->accept_socket(fd, ip))
-    {
+    if (watch_accepted(fd, stm) && stm->accept_socket(fd, ip)) {
         auto token = new_token();
         m_objects[token] = stm;
         return token;

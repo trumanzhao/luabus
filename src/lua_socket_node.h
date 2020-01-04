@@ -11,8 +11,7 @@
 #include "luna.h"
 #include "lua_archiver.h"
 
-struct lua_socket_node final
-{
+struct lua_socket_node final {
     lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<lua_archiver>& ar);
     ~lua_socket_node();
 

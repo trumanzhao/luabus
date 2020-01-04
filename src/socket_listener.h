@@ -9,8 +9,7 @@
 #include "io_buffer.h"
 #include "socket_mgr_impl.h"
 
-struct socket_listener : public socket_object
-{
+struct socket_listener : public socket_object {
 #ifdef _MSC_VER
     socket_listener(socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func);
 #endif
@@ -42,8 +41,7 @@ private:
     std::function<void(int)> m_accept_cb;
 
 #ifdef _MSC_VER
-    struct listen_node
-    {
+    struct listen_node {
         WSAOVERLAPPED ovl;
         socket_t fd;
         sockaddr_storage buffer[2];

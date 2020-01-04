@@ -9,8 +9,7 @@
 #include "io_buffer.h"
 #include "socket_mgr_impl.h"
 
-struct socket_stream : public socket_object
-{
+struct socket_stream : public socket_object {
 #ifdef _MSC_VER
     socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func);
 #endif

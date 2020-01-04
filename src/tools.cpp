@@ -25,8 +25,7 @@
 #endif
 #include "tools.h"
 
-time_t get_file_time(const char* file_name)
-{
+time_t get_file_time(const char* file_name) {
     if (file_name == nullptr)
         return 0;
 
@@ -44,8 +43,7 @@ time_t get_file_time(const char* file_name)
 #endif
 }
 
-char* get_error_string(char buffer[], int len, int no)
-{
+char* get_error_string(char buffer[], int len, int no) {
     buffer[0] = '\0';
 
 #ifdef _MSC_VER
@@ -59,8 +57,7 @@ char* get_error_string(char buffer[], int len, int no)
     return buffer;
 }
 
-void get_error_string(std::string& err, int no)
-{
+void get_error_string(std::string& err, int no) {
     char txt[MAX_ERROR_TXT];
     get_error_string(txt, sizeof(txt), no);
     err = txt;

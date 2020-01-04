@@ -8,8 +8,7 @@
 #include <memory>
 #include <functional>
 
-class socket_mgr
-{
+class socket_mgr {
 public:
     socket_mgr();
     socket_mgr(socket_mgr& other);
