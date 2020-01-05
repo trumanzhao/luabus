@@ -11,9 +11,9 @@
 
 struct socket_stream : public socket_object {
 #ifdef _MSC_VER
-    socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func);
+    socket_stream(uint32_t token, socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func);
 #endif
-    socket_stream(socket_mgr_impl* mgr);
+    socket_stream(uint32_t token, socket_mgr_impl* mgr);
 
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
@@ -36,7 +36,7 @@ struct socket_stream : public socket_object {
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-    void on_can_recv(size_t max_len, bool is_eof) override { do_recv(max_len, is_eof); }
+    void on_can_recv(size_t max_len, bool is_eof) override;
     void on_can_send(size_t max_len, bool is_eof) override;
 #endif
 
@@ -64,7 +64,6 @@ struct socket_stream : public socket_object {
     LPFN_CONNECTEX m_connect_func = nullptr;
     WSAOVERLAPPED m_send_ovl;
     WSAOVERLAPPED m_recv_ovl;
-    int m_ovl_ref = 0;
 #endif
 
     std::function<void(char*, size_t)> m_package_cb;

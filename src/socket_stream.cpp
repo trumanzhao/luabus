@@ -39,7 +39,7 @@ static const int s_send_flag = 0;
 #endif
 
 #ifdef _MSC_VER
-socket_stream::socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func) {
+socket_stream::socket_stream(uint32_t token, socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func) : socket_object(token) {
     mgr->increase_count();
     m_mgr = mgr;
     m_connect_func = connect_func;
@@ -47,7 +47,7 @@ socket_stream::socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func) 
 }
 #endif
 
-socket_stream::socket_stream(socket_mgr_impl* mgr) {
+socket_stream::socket_stream(uint32_t token, socket_mgr_impl* mgr) : socket_object(token) {
     mgr->increase_count();
     m_mgr = mgr;
     m_ip[0] = 0;
@@ -349,10 +349,6 @@ void socket_stream::stream_send(const char* data, size_t data_len) {
 
 #ifdef _MSC_VER
 void socket_stream::on_complete(WSAOVERLAPPED* ovl) {
-    m_ovl_ref--;
-    if (m_closed)
-        return;
-
     if (m_connected) {
         if (ovl == &m_recv_ovl) {
             do_recv(UINT_MAX, false);
@@ -386,10 +382,11 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl) {
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-void socket_stream::on_can_send(size_t max_len, bool is_eof) {
-    if (m_closed)
-        return;
+void socket_stream::on_can_recv(size_t max_len, bool is_eof) { 
+        do_recv(max_len, is_eof); 
+}
 
+void socket_stream::on_can_send(size_t max_len, bool is_eof) {
     if (m_connected) {
         do_send(max_len, is_eof);
         return;

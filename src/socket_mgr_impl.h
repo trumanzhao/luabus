@@ -15,9 +15,9 @@
 #include "socket_mgr.h"
 
 struct socket_object {
+    socket_object(uint32_t token) : m_token(token) {}
     virtual ~socket_object() {};
     virtual bool update(int64_t now) = 0;
-    virtual void close() final { m_closed = true; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char node_name[], const char service_name[]) { }
     virtual void set_send_buffer_size(size_t size) { }
@@ -38,8 +38,10 @@ struct socket_object {
     virtual void on_can_send(size_t data_len = UINT_MAX, bool is_eof = false) {};
 #endif
 
-protected:
+    uint32_t m_token = 0;
+    bool m_io_handing = false;
     bool m_closed = false;
+    int m_ovl_ref = 0;
 };
 
 class socket_mgr_impl {
@@ -99,6 +101,7 @@ private:
 #ifdef __APPLE__
     int m_handle = -1;
     std::vector<struct kevent> m_events;
+    std::vector<socket_object*> m_close_list;
 #endif
 
     socket_object* get_object(int token) {
@@ -110,15 +113,15 @@ private:
     }
 
     uint32_t new_token() {
-        while (++m_token == 0 || m_objects.find(m_token) != m_objects.end()) {
+        while (++m_next_token == 0 || m_objects.find(m_next_token) != m_objects.end()) {
             // nothing ...
         }
-        return m_token;
+        return m_next_token;
     }
 
     int m_max_count = 0;
     int m_count = 0;
-    uint32_t m_token = 0;
+    uint32_t m_next_token = 0;
     int64_t m_next_update = 0;
     std::unordered_map<uint32_t, socket_object*> m_objects;
 };

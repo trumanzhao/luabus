@@ -11,11 +11,11 @@
 
 struct socket_listener : public socket_object {
 #ifdef _MSC_VER
-    socket_listener(socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func);
+    socket_listener(uint32_t token, socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func);
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-    socket_listener(socket_mgr_impl* mgr);
+    socket_listener(uint32_t token, socket_mgr_impl* mgr);
 #endif
 
     ~socket_listener();
@@ -49,6 +49,5 @@ private:
     listen_node m_nodes[16];
     LPFN_ACCEPTEX m_accept_func = nullptr;
     LPFN_GETACCEPTEXSOCKADDRS m_addrs_func = nullptr;
-    int m_ovl_ref = 0;
 #endif
 };

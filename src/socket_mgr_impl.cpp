@@ -141,7 +141,18 @@ int socket_mgr_impl::wait(int timeout) {
         for (ULONG i = 0; i < event_count; i++) {
             OVERLAPPED_ENTRY& oe = m_events[i];
             auto object = (socket_object*)oe.lpCompletionKey;
-            object->on_complete(oe.lpOverlapped);
+
+            object->m_ovl_ref--;
+            if (!object->m_closed) {
+                object->m_io_handing = true;
+                object->on_complete(oe.lpOverlapped);
+                object->m_io_handing = false;
+            }
+                    
+            if (object->m_closed && object->m_ovl_ref == 0) {
+                m_objects.erase(object->m_token);
+                delete object;
+            }
         }
     }
 #endif
@@ -151,8 +162,21 @@ int socket_mgr_impl::wait(int timeout) {
     for (int i = 0; i < event_count; i++) {
         epoll_event& ev = m_events[i];
         auto object = (socket_object*)ev.data.ptr;
-        if (ev.events & EPOLLIN) object->on_can_recv();
-        if (ev.events & EPOLLOUT) object->on_can_send();
+
+        object->m_io_handing = true;
+        if (ev.events & EPOLLIN != 0 && !object->m_closed) {
+            object->on_can_recv();
+        }
+
+        if (ev.events & EPOLLOUT != 0 && !object->m_closed) {
+            object->on_can_send();
+        }        
+        object->m_io_handing = false;
+
+        if (object->m_closed) {
+            m_objects.erase(object->m_token);
+            delete object;
+        }
     }
 #endif
 
@@ -164,27 +188,26 @@ int socket_mgr_impl::wait(int timeout) {
     for (int i = 0; i < event_count; i++) {
         struct kevent& ev = m_events[i];
         auto object = (socket_object*)ev.udata;
-        if (ev.filter == EVFILT_READ) object->on_can_recv((size_t)ev.data, (ev.flags & EV_EOF) != 0);
-        else if (ev.filter == EVFILT_WRITE) object->on_can_send((size_t)ev.data, (ev.flags & EV_EOF) != 0);
-    }
-#endif
-
-    int64_t now = get_time_ms();
-    if (now >= m_next_update) {
-        // 没必要每次都update
-        m_next_update = now + 10;
-
-        auto it = m_objects.begin(), end = m_objects.end();
-        while (it != end) {
-            socket_object* object = it->second;
-            if (!object->update(now)) {
-                it = m_objects.erase(it);
-                delete object;
-                continue;
+        if (!object->m_closed) {
+            object->m_io_handing = true;
+            if (ev.filter == EVFILT_READ) {
+                object->on_can_recv((size_t)ev.data, (ev.flags & EV_EOF) != 0);
+            } else if (ev.filter == EVFILT_WRITE) {
+                object->on_can_send((size_t)ev.data, (ev.flags & EV_EOF) != 0);
             }
-            ++it;
+            object->m_io_handing = false;
+            if (object->m_closed) {
+                m_close_list.push_back(object);
+            }
         }
     }
+
+    for (auto object : m_close_list) {
+        m_objects.erase(object->m_token);
+        delete object;
+    }
+    m_close_list.clear();
+#endif
 	return (int)event_count;
 }
 
@@ -194,13 +217,14 @@ int socket_mgr_impl::listen(std::string& err, const char ip[], int port) {
     sockaddr_storage addr;
     size_t addr_len = 0;
     int one = 1;
+    int token = new_token();    
 
 #ifdef _MSC_VER
-    auto* listener = new socket_listener(this, m_accept_func, m_addrs_func);
+    auto* listener = new socket_listener(token, this, m_accept_func, m_addrs_func);
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-    auto* listener = new socket_listener(this);
+    auto* listener = new socket_listener(token, this);
 #endif
 
     ret = make_ip_addr(&addr, &addr_len, ip, port);
@@ -223,7 +247,6 @@ int socket_mgr_impl::listen(std::string& err, const char ip[], int port) {
     FAILED_JUMP(ret != SOCKET_ERROR);
 
     if (watch_listen(fd, listener) && listener->setup(fd)) {
-        int token = new_token();
         m_objects[token] = listener;
         return token;
     }
@@ -244,17 +267,17 @@ int socket_mgr_impl::connect(std::string& err, const char node_name[], const cha
         return 0;
     }
 
+    int token = new_token();    
+
 #ifdef _MSC_VER
-    socket_stream* stm = new socket_stream(this, m_connect_func);
+    socket_stream* stm = new socket_stream(token, this, m_connect_func);
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-    socket_stream* stm = new socket_stream(this);
+    socket_stream* stm = new socket_stream(token, this);
 #endif
 
     stm->connect(node_name, service_name, timeout);
-
-    int token = new_token();
     m_objects[token] = stm;
     return token;
 }
@@ -289,8 +312,11 @@ void socket_mgr_impl::send(uint32_t token, const void* data, size_t data_len) {
 
 void socket_mgr_impl::close(uint32_t token) {
     auto node = get_object(token);
+    // 注意,中IOCP下,不管当前是否处于io_handing状态,都应该把socket句柄关闭掉,否则,就必须等待下一个io完成时才会触发关闭
+    // 而所谓“下一个”可能是很久很久以后才会到来...    
     if (node) {
-        node->close();
+        //todo: ....
+
     }
 }
 
@@ -344,7 +370,7 @@ bool socket_mgr_impl::watch_listen(socket_t fd, socket_object* object) {
 
 #ifdef __APPLE__
     struct kevent evt;
-    EV_SET(&evt, fd, EVFILT_READ, EV_ADD, 0, 0, object);
+    EV_SET(&evt, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, object);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
 #endif
 }
@@ -363,8 +389,8 @@ bool socket_mgr_impl::watch_accepted(socket_t fd, socket_object* object) {
 
 #ifdef __APPLE__
     struct kevent evt[2];
-    EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD, 0, 0, object);
-    EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, object);
+    EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, object);
+    EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_DISABLE, 0, 0, object);
     return kevent(m_handle, evt, _countof(evt), nullptr, 0, nullptr) == 0;
 #endif
 }
@@ -383,7 +409,7 @@ bool socket_mgr_impl::watch_connecting(socket_t fd, socket_object* object) {
 
 #ifdef __APPLE__
     struct kevent evt;
-    EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD, 0, 0, object);
+    EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, object);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
 #endif
 }
@@ -402,8 +428,8 @@ bool socket_mgr_impl::watch_connected(socket_t fd, socket_object* object) {
 
 #ifdef __APPLE__
     struct kevent evt[2];
-    EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD, 0, 0, object);
-    EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, object);
+    EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, object);
+    EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_DISABLE, 0, 0, object);
     return kevent(m_handle, evt, _countof(evt), nullptr, 0, nullptr) == 0;
 #endif
 }
@@ -422,7 +448,7 @@ bool socket_mgr_impl::watch_send(socket_t fd, socket_object* object, bool enable
 
 #ifdef __APPLE__
     struct kevent evt;
-    EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD | (enable ? 0 : EV_DISABLE), 0, 0, object);
+    EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | (enable ? 0 : EV_DISABLE), 0, 0, object);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
 #endif
 }
@@ -446,9 +472,9 @@ void socket_mgr_impl::unwatch(socket_t fd) {
 }
 
 int socket_mgr_impl::accept_stream(socket_t fd, const char ip[]) {
-    auto* stm = new socket_stream(this);
+    auto token = new_token();    
+    auto* stm = new socket_stream(token, this);
     if (watch_accepted(fd, stm) && stm->accept_socket(fd, ip)) {
-        auto token = new_token();
         m_objects[token] = stm;
         return token;
     }
