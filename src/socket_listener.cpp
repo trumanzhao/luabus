@@ -29,7 +29,7 @@
 #include "socket_listener.h"
 
 #ifdef _MSC_VER
-socket_listener::socket_listener(uint32_t token, socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func) : socket_object(token) {
+socket_listener::socket_listener(uint32_t token, socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func) : socket_node(token) {
     mgr->increase_count();
     m_mgr = mgr;
     m_accept_func = accept_func;
@@ -42,7 +42,7 @@ socket_listener::socket_listener(uint32_t token, socket_mgr_impl* mgr, LPFN_ACCE
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-socket_listener::socket_listener(uint32_t token, socket_mgr_impl* mgr) : socket_object(token) {
+socket_listener::socket_listener(uint32_t token, socket_mgr_impl* mgr) : socket_node(token) {
     mgr->increase_count();
     m_mgr = mgr;
 }

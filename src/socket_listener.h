@@ -9,7 +9,7 @@
 #include "io_buffer.h"
 #include "socket_mgr_impl.h"
 
-struct socket_listener : public socket_object {
+struct socket_listener : public socket_node {
 #ifdef _MSC_VER
     socket_listener(uint32_t token, socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func);
 #endif
@@ -35,8 +35,6 @@ struct socket_listener : public socket_object {
 #endif
 
 private:
-    socket_mgr_impl* m_mgr = nullptr;
-    socket_t m_socket = INVALID_SOCKET;
     std::function<void(const char*)> m_error_cb;
     std::function<void(int)> m_accept_cb;
 

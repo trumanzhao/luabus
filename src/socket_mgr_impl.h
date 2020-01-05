@@ -13,36 +13,7 @@
 #include <mutex>
 #include "socket_helper.h"
 #include "socket_mgr.h"
-
-struct socket_object {
-    socket_object(uint32_t token) : m_token(token) {}
-    virtual ~socket_object() {};
-    virtual bool update(int64_t now) = 0;
-    virtual bool get_remote_ip(std::string& ip) = 0;
-    virtual void connect(const char node_name[], const char service_name[]) { }
-    virtual void set_send_buffer_size(size_t size) { }
-    virtual void set_recv_buffer_size(size_t size) { }
-    virtual void set_nodelay(int flag) { }
-    virtual void send(const void* data, size_t data_len) { }
-    virtual void set_accept_callback(const std::function<void(int)>& cb) { }
-    virtual void set_connect_callback(const std::function<void(bool, const char*)>& cb) { }
-    virtual void set_package_callback(const std::function<void(char*, size_t)>& cb) { }
-    virtual void set_error_callback(const std::function<void(const char*)>& cb) { }
-
-#ifdef _MSC_VER
-    virtual void on_complete(WSAOVERLAPPED* ovl) = 0;
-#endif
-
-#if defined(__linux) || defined(__APPLE__)
-    virtual void on_can_recv(size_t data_len = UINT_MAX, bool is_eof = false) {};
-    virtual void on_can_send(size_t data_len = UINT_MAX, bool is_eof = false) {};
-#endif
-
-    uint32_t m_token = 0;
-    bool m_io_handing = false;
-    bool m_closed = false;
-    int m_ovl_ref = 0;
-};
+#include "socket_node.h"
 
 class socket_mgr_impl {
 public:
@@ -72,11 +43,11 @@ public:
     void set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb);
     void set_error_callback(uint32_t token, const std::function<void(const char*)>& cb);
 
-    bool watch_listen(socket_t fd, socket_object* object);
-    bool watch_accepted(socket_t fd, socket_object* object);
-    bool watch_connecting(socket_t fd, socket_object* object);
-    bool watch_connected(socket_t fd, socket_object* object);
-    bool watch_send(socket_t fd, socket_object* object, bool enable);
+    bool watch_listen(socket_t fd, socket_node* node);
+    bool watch_accepted(socket_t fd, socket_node* node);
+    bool watch_connecting(socket_t fd, socket_node* node);
+    bool watch_connected(socket_t fd, socket_node* node);
+    bool watch_send(socket_t fd, socket_node* node, bool enable);
     void unwatch(socket_t fd);
     int accept_stream(socket_t fd, const char ip[]);
 
@@ -101,19 +72,19 @@ private:
 #ifdef __APPLE__
     int m_handle = -1;
     std::vector<struct kevent> m_events;
-    std::vector<socket_object*> m_close_list;
+    std::vector<socket_node*> m_close_list;
 #endif
 
-    socket_object* get_object(int token) {
-        auto it = m_objects.find(token);
-        if (it != m_objects.end()) {
+    socket_node* get_object(int token) {
+        auto it = m_nodes.find(token);
+        if (it != m_nodes.end()) {
             return it->second;
         }
         return nullptr;
     }
 
     uint32_t new_token() {
-        while (++m_next_token == 0 || m_objects.find(m_next_token) != m_objects.end()) {
+        while (++m_next_token == 0 || m_nodes.find(m_next_token) != m_nodes.end()) {
             // nothing ...
         }
         return m_next_token;
@@ -123,5 +94,5 @@ private:
     int m_count = 0;
     uint32_t m_next_token = 0;
     int64_t m_next_update = 0;
-    std::unordered_map<uint32_t, socket_object*> m_objects;
+    std::unordered_map<uint32_t, socket_node*> m_nodes;
 };

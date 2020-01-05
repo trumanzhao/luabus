@@ -42,7 +42,7 @@ socket_mgr_impl::socket_mgr_impl() {
 }
 
 socket_mgr_impl::~socket_mgr_impl() {
-    for (auto& node : m_objects) {
+    for (auto& node : m_nodes) {
         delete node.second;
     }
 
@@ -140,18 +140,18 @@ int socket_mgr_impl::wait(int timeout) {
     if (ret) {
         for (ULONG i = 0; i < event_count; i++) {
             OVERLAPPED_ENTRY& oe = m_events[i];
-            auto object = (socket_object*)oe.lpCompletionKey;
+            auto node = (socket_node*)oe.lpCompletionKey;
 
-            object->m_ovl_ref--;
-            if (!object->m_closed) {
-                object->m_io_handing = true;
-                object->on_complete(oe.lpOverlapped);
-                object->m_io_handing = false;
+            node->m_ovl_ref--;
+            if (!node->m_closed) {
+                node->m_io_handing = true;
+                node->on_complete(oe.lpOverlapped);
+                node->m_io_handing = false;
             }
                     
-            if (object->m_closed && object->m_ovl_ref == 0) {
-                m_objects.erase(object->m_token);
-                delete object;
+            if (node->m_closed && node->m_ovl_ref == 0) {
+                m_nodes.erase(node->m_token);
+                delete node;
             }
         }
     }
@@ -161,21 +161,21 @@ int socket_mgr_impl::wait(int timeout) {
     int event_count = epoll_wait(m_handle, &m_events[0], (int)m_events.size(), timeout);
     for (int i = 0; i < event_count; i++) {
         epoll_event& ev = m_events[i];
-        auto object = (socket_object*)ev.data.ptr;
+        auto node = (socket_node*)ev.data.ptr;
 
-        object->m_io_handing = true;
-        if (ev.events & EPOLLIN != 0 && !object->m_closed) {
-            object->on_can_recv();
+        node->m_io_handing = true;
+        if (ev.events & EPOLLIN != 0 && !node->m_closed) {
+            node->on_can_recv();
         }
 
-        if (ev.events & EPOLLOUT != 0 && !object->m_closed) {
-            object->on_can_send();
+        if (ev.events & EPOLLOUT != 0 && !node->m_closed) {
+            node->on_can_send();
         }        
-        object->m_io_handing = false;
+        node->m_io_handing = false;
 
-        if (object->m_closed) {
-            m_objects.erase(object->m_token);
-            delete object;
+        if (node->m_closed) {
+            m_nodes.erase(node->m_token);
+            delete node;
         }
     }
 #endif
@@ -187,24 +187,24 @@ int socket_mgr_impl::wait(int timeout) {
     int event_count = kevent(m_handle, nullptr, 0, &m_events[0], (int)m_events.size(), timeout >= 0 ? &time_wait : nullptr);
     for (int i = 0; i < event_count; i++) {
         struct kevent& ev = m_events[i];
-        auto object = (socket_object*)ev.udata;
-        if (!object->m_closed) {
-            object->m_io_handing = true;
+        auto node = (socket_node*)ev.udata;
+        if (!node->m_closed) {
+            node->m_io_handing = true;
             if (ev.filter == EVFILT_READ) {
-                object->on_can_recv((size_t)ev.data, (ev.flags & EV_EOF) != 0);
+                node->on_can_recv((size_t)ev.data, (ev.flags & EV_EOF) != 0);
             } else if (ev.filter == EVFILT_WRITE) {
-                object->on_can_send((size_t)ev.data, (ev.flags & EV_EOF) != 0);
+                node->on_can_send((size_t)ev.data, (ev.flags & EV_EOF) != 0);
             }
-            object->m_io_handing = false;
-            if (object->m_closed) {
-                m_close_list.push_back(object);
+            node->m_io_handing = false;
+            if (node->m_closed) {
+                m_close_list.push_back(node);
             }
         }
     }
 
-    for (auto object : m_close_list) {
-        m_objects.erase(object->m_token);
-        delete object;
+    for (auto node : m_close_list) {
+        m_nodes.erase(node->m_token);
+        delete node;
     }
     m_close_list.clear();
 #endif
@@ -247,7 +247,7 @@ int socket_mgr_impl::listen(std::string& err, const char ip[], int port) {
     FAILED_JUMP(ret != SOCKET_ERROR);
 
     if (watch_listen(fd, listener) && listener->setup(fd)) {
-        m_objects[token] = listener;
+        m_nodes[token] = listener;
         return token;
     }
 
@@ -278,7 +278,7 @@ int socket_mgr_impl::connect(std::string& err, const char node_name[], const cha
 #endif
 
     stm->connect(node_name, service_name, timeout);
-    m_objects[token] = stm;
+    m_nodes[token] = stm;
     return token;
 }
 
@@ -312,11 +312,12 @@ void socket_mgr_impl::send(uint32_t token, const void* data, size_t data_len) {
 
 void socket_mgr_impl::close(uint32_t token) {
     auto node = get_object(token);
-    // 注意,中IOCP下,不管当前是否处于io_handing状态,都应该把socket句柄关闭掉,否则,就必须等待下一个io完成时才会触发关闭
-    // 而所谓“下一个”可能是很久很久以后才会到来...    
-    if (node) {
-        //todo: ....
-
+    if (node && !node->m_closed) {
+        node->close();
+        if (node->m_ovl_ref == 0) {
+            m_nodes.erase(node->m_token);
+            delete node;            
+        }
     }
 }
 
@@ -356,99 +357,99 @@ void socket_mgr_impl::set_error_callback(uint32_t token, const std::function<voi
     }
 }
 
-bool socket_mgr_impl::watch_listen(socket_t fd, socket_object* object) {
+bool socket_mgr_impl::watch_listen(socket_t fd, socket_node* node) {
 #ifdef _MSC_VER
-    return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
+    return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)node, 0) == m_handle;
 #endif
 
 #ifdef __linux
     epoll_event ev;
-    ev.data.ptr = object;
+    ev.data.ptr = node;
     ev.events = EPOLLIN | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_ADD, fd, &ev) == 0;
 #endif
 
 #ifdef __APPLE__
     struct kevent evt;
-    EV_SET(&evt, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, object);
+    EV_SET(&evt, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, node);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
 #endif
 }
 
-bool socket_mgr_impl::watch_accepted(socket_t fd, socket_object* object) {
+bool socket_mgr_impl::watch_accepted(socket_t fd, socket_node* node) {
 #ifdef _MSC_VER
-    return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
+    return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)node, 0) == m_handle;
 #endif
 
 #ifdef __linux
     epoll_event ev;
-    ev.data.ptr = object;
+    ev.data.ptr = node;
     ev.events = EPOLLIN | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_ADD, fd, &ev) == 0;
 #endif
 
 #ifdef __APPLE__
     struct kevent evt[2];
-    EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, object);
-    EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_DISABLE, 0, 0, object);
+    EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, node);
+    EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_DISABLE, 0, 0, node);
     return kevent(m_handle, evt, _countof(evt), nullptr, 0, nullptr) == 0;
 #endif
 }
 
-bool socket_mgr_impl::watch_connecting(socket_t fd, socket_object* object) {
+bool socket_mgr_impl::watch_connecting(socket_t fd, socket_node* node) {
 #ifdef _MSC_VER
-    return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
+    return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)node, 0) == m_handle;
 #endif
 
 #ifdef __linux
     epoll_event ev;
-    ev.data.ptr = object;
+    ev.data.ptr = node;
     ev.events = EPOLLOUT | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_ADD, fd, &ev) == 0;
 #endif
 
 #ifdef __APPLE__
     struct kevent evt;
-    EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, object);
+    EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, node);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
 #endif
 }
 
-bool socket_mgr_impl::watch_connected(socket_t fd, socket_object* object) {
+bool socket_mgr_impl::watch_connected(socket_t fd, socket_node* node) {
 #ifdef _MSC_VER
     return true;
 #endif
 
 #ifdef __linux
     epoll_event ev;
-    ev.data.ptr = object;
+    ev.data.ptr = node;
     ev.events = EPOLLIN | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_MOD, fd, &ev) == 0;
 #endif
 
 #ifdef __APPLE__
     struct kevent evt[2];
-    EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, object);
-    EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_DISABLE, 0, 0, object);
+    EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, node);
+    EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | EV_DISABLE, 0, 0, node);
     return kevent(m_handle, evt, _countof(evt), nullptr, 0, nullptr) == 0;
 #endif
 }
 
-bool socket_mgr_impl::watch_send(socket_t fd, socket_object* object, bool enable) {
+bool socket_mgr_impl::watch_send(socket_t fd, socket_node* node, bool enable) {
 #ifdef _MSC_VER
     return true;
 #endif
 
 #ifdef __linux
     epoll_event ev;
-    ev.data.ptr = object;
+    ev.data.ptr = node;
     ev.events = EPOLLIN | (enable ? EPOLLOUT : 0) | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_MOD, fd, &ev) == 0;
 #endif
 
 #ifdef __APPLE__
     struct kevent evt;
-    EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | (enable ? 0 : EV_DISABLE), 0, 0, object);
+    EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR | (enable ? 0 : EV_DISABLE), 0, 0, node);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
 #endif
 }
@@ -475,7 +476,7 @@ int socket_mgr_impl::accept_stream(socket_t fd, const char ip[]) {
     auto token = new_token();    
     auto* stm = new socket_stream(token, this);
     if (watch_accepted(fd, stm) && stm->accept_socket(fd, ip)) {
-        m_objects[token] = stm;
+        m_nodes[token] = stm;
         return token;
     }
     delete stm;

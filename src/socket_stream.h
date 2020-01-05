@@ -9,7 +9,7 @@
 #include "io_buffer.h"
 #include "socket_mgr_impl.h"
 
-struct socket_stream : public socket_object {
+struct socket_stream : public socket_node {
 #ifdef _MSC_VER
     socket_stream(uint32_t token, socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func);
 #endif
@@ -47,8 +47,6 @@ struct socket_stream : public socket_object {
     void on_error(const char err[]);
     void on_connect(bool ok, const char reason[]);
 
-    socket_mgr_impl* m_mgr = nullptr;
-    socket_t m_socket = INVALID_SOCKET;
     std::shared_ptr<io_buffer> m_recv_buffer = std::make_shared<io_buffer>();
     std::shared_ptr<io_buffer> m_send_buffer = std::make_shared<io_buffer>();
 
