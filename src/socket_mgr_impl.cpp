@@ -283,38 +283,38 @@ int socket_mgr_impl::connect(std::string& err, const char node_name[], const cha
 }
 
 void socket_mgr_impl::set_send_buffer_size(uint32_t token, size_t size) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node && size > 0) {
         node->set_send_buffer_size(size);
     }
 }
 
 void socket_mgr_impl::set_recv_buffer_size(uint32_t token, size_t size) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node && size > 0) {
         node->set_recv_buffer_size(size);
     }
 }
 
 void socket_mgr_impl::set_nodelay(uint32_t token, int flag) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node) {
         node->set_nodelay(flag);
     }
 }
 
 void socket_mgr_impl::send(uint32_t token, const void* data, size_t data_len) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node) {
         node->send(data, data_len);
     }
 }
 
 void socket_mgr_impl::close(uint32_t token) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node && !node->m_closed) {
         node->close();
-        if (node->m_ovl_ref == 0) {
+        if (node->m_ovl_ref == 0 && !node->m_io_handing) {
             m_nodes.erase(node->m_token);
             delete node;            
         }
@@ -322,7 +322,7 @@ void socket_mgr_impl::close(uint32_t token) {
 }
 
 bool socket_mgr_impl::get_remote_ip(uint32_t token, std::string& ip) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node) {
         return node->get_remote_ip(ip);
     }
@@ -330,28 +330,28 @@ bool socket_mgr_impl::get_remote_ip(uint32_t token, std::string& ip) {
 }
 
 void socket_mgr_impl::set_accept_callback(uint32_t token, const std::function<void(uint32_t)>& cb) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node) {
         node->set_accept_callback(cb);
     }
 }
 
 void socket_mgr_impl::set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node) {
         node->set_connect_callback(cb);
     }
 }
 
 void socket_mgr_impl::set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node) {
         node->set_package_callback(cb);
     }
 }
 
 void socket_mgr_impl::set_error_callback(uint32_t token, const std::function<void(const char*)>& cb) {
-    auto node = get_object(token);
+    auto node = find_node(token);
     if (node) {
         node->set_error_callback(cb);
     }
@@ -482,3 +482,19 @@ int socket_mgr_impl::accept_stream(socket_t fd, const char ip[]) {
     delete stm;
     return 0;
 }
+
+socket_node* socket_mgr_impl::find_node(int token) {
+    auto it = m_nodes.find(token);
+    if (it != m_nodes.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+uint32_t socket_mgr_impl::new_token() {
+    while (++m_next_token == 0 || m_nodes.find(m_next_token) != m_nodes.end()) {
+        // nothing ...
+    }
+    return m_next_token;
+}
+

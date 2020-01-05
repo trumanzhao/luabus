@@ -54,6 +54,8 @@ public:
     void increase_count() { m_count++; }
     void decrease_count() { m_count--; }
     bool is_full() { return m_count >= m_max_count; }
+    socket_node* find_node(int token);
+    uint32_t new_token();
 private:
 
 #ifdef _MSC_VER
@@ -74,21 +76,6 @@ private:
     std::vector<struct kevent> m_events;
     std::vector<socket_node*> m_close_list;
 #endif
-
-    socket_node* get_object(int token) {
-        auto it = m_nodes.find(token);
-        if (it != m_nodes.end()) {
-            return it->second;
-        }
-        return nullptr;
-    }
-
-    uint32_t new_token() {
-        while (++m_next_token == 0 || m_nodes.find(m_next_token) != m_nodes.end()) {
-            // nothing ...
-        }
-        return m_next_token;
-    }
 
     int m_max_count = 0;
     int m_count = 0;
