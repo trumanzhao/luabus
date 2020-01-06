@@ -208,6 +208,35 @@ int socket_mgr::wait(int timeout) {
     }
     m_close_list.clear();
 #endif
+
+    while (!m_delay_calls.empty()) {
+        m_delay_calls.front()();
+        m_delay_calls.pop_front();
+    }
+
+    auto now = get_time_ms();
+    auto it = m_timeout_list.begin();
+    while (it != m_timeout_list.end()) {
+        auto node_it = m_nodes.find(it->m_token);
+        if (node_it == m_nodes.end()){
+            it = m_timeout_list.erase(it);
+            continue;
+        }
+
+        if (it->m_deadline > now)
+            break;
+
+        it = m_timeout_list.erase(it);        
+        socket_stream* node = (socket_stream*)node_it->second;
+        if (!node->m_connected && !node->m_closed) {
+            node->on_connect(false, "timeout");
+            if (node->m_ovl_ref == 0) {
+                m_nodes.erase(node->m_token);
+                delete node;                
+            }
+        }
+    }
+
 	return (int)event_count;
 }
 
@@ -217,7 +246,7 @@ int socket_mgr::listen(std::string& err, const char ip[], int port) {
     sockaddr_storage addr;
     size_t addr_len = 0;
     int one = 1;
-    int token = new_token();    
+    auto token = new_token();    
 
 #ifdef _MSC_VER
     auto* listener = new socket_listener(token, this, m_accept_func, m_addrs_func);
@@ -251,6 +280,15 @@ int socket_mgr::listen(std::string& err, const char ip[], int port) {
         return token;
     }
 
+#ifdef _MSC_VER
+    m_delay_calls.push_back([this, token](){
+        auto node = (socket_listener*)find_node(token);
+        if (node && !node->m_closed) {
+            node->start_listen();
+        }
+    });
+#endif        
+
 Exit0:
     get_error_string(err, get_socket_error());
     delete listener;
@@ -267,7 +305,7 @@ int socket_mgr::connect(std::string& err, const char node_name[], const char ser
         return 0;
     }
 
-    int token = new_token();    
+    auto token = new_token();    
 
 #ifdef _MSC_VER
     socket_stream* stm = new socket_stream(token, this, m_connect_func);
@@ -276,6 +314,17 @@ int socket_mgr::connect(std::string& err, const char node_name[], const char ser
 #if defined(__linux) || defined(__APPLE__)
     socket_stream* stm = new socket_stream(token, this);
 #endif
+
+    m_delay_calls.push_back([this, token](){
+        auto node = (socket_stream*)find_node(token);
+        if (node && !node->m_closed) {
+            node->try_connect();
+        }
+    });
+    
+    if (timeout > 0) {
+        m_timeout_list.insert({token, get_time_ms() + timeout});
+    }    
 
     stm->connect(node_name, service_name, timeout);
     m_nodes[token] = stm;

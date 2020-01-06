@@ -71,35 +71,6 @@ bool socket_listener::setup(socket_t fd) {
     return true;
 }
 
-bool socket_listener::update(int64_t) {
-    if (m_closed && m_socket != INVALID_SOCKET) {
-        m_mgr->unwatch(m_socket);
-        close_socket_handle(m_socket);
-        m_socket = INVALID_SOCKET;
-    }
-
-#ifdef _MSC_VER
-    if (m_ovl_ref == 0 && !m_closed) {
-        for (auto& node : m_nodes) {
-            if (node.fd == INVALID_SOCKET) {
-                queue_accept(&node.ovl);
-            }
-        }
-    }
-#endif
-
-    if (m_closed) {
-#ifdef _MSC_VER
-        return m_ovl_ref != 0;
-#endif
-
-#if defined(__linux) || defined(__APPLE__)
-        return false;
-#endif
-    }
-    return true;
-}
-
 #ifdef _MSC_VER
 void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
     m_ovl_ref--;
@@ -137,6 +108,13 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
 
     node->fd = INVALID_SOCKET;
     queue_accept(ovl);
+}
+
+void socket_listener::start_listen() {
+    for (auto& node : m_nodes) {
+        assert(node.fd == INVALID_SOCKET);
+        queue_accept(&node.ovl);
+    }
 }
 
 void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
@@ -179,6 +157,12 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
             return;
         }
 
+        if (m_mgr->is_full()) {
+            close_socket_handle(node->fd);
+            node->fd = INVALID_SOCKET;
+            continue;
+        }        
+
         sockaddr* local_addr = nullptr;
         sockaddr* remote_addr = nullptr;
         int local_addr_len = 0;
@@ -191,14 +175,10 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
         auto token = m_mgr->accept_stream(node->fd, ip);
         if (token == 0) {
             close_socket_handle(node->fd);
-            node->fd = INVALID_SOCKET;
-            m_closed = true;
-            m_error_cb("new-stream-failed");
-            return;
+        } else {
+            m_accept_cb(token);
         }
-
         node->fd = INVALID_SOCKET;
-        m_accept_cb(token);
     }
 }
 #endif

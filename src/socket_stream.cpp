@@ -88,37 +88,6 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
 void socket_stream::connect(const char node_name[], const char service_name[], int timeout) {
     m_node_name = node_name;
     m_service_name = service_name;
-    m_connecting_time = get_time_ms() + timeout;
-}
-
-bool socket_stream::update(int64_t now) {
-    if (m_closed) {
-        if (m_socket != INVALID_SOCKET) {
-            m_mgr->unwatch(m_socket);
-            close_socket_handle(m_socket);
-            m_socket = INVALID_SOCKET;
-        }
-
-#ifdef _MSC_VER
-        return m_ovl_ref != 0;
-#endif
-
-#if defined(__linux) || defined(__APPLE__)
-        return false;
-#endif
-    }
-
-    if (!m_connected) {
-        if (now > m_connecting_time) {
-            on_connect(false, "timeout");
-            return true;
-        }
-
-        try_connect();
-        return true;
-    }
-
-    return true;
 }
 
 #ifdef _MSC_VER

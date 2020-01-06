@@ -14,8 +14,7 @@ class socket_mgr;
 struct socket_node {
     socket_node(uint32_t token) : m_token(token) {}
     virtual ~socket_node() {};
-    virtual bool update(int64_t now) = 0;
-    virtual void close() final;
+    void close();
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char node_name[], const char service_name[]) { }
     virtual void set_send_buffer_size(size_t size) { }
@@ -39,6 +38,7 @@ struct socket_node {
     uint32_t m_token;
     socket_mgr* m_mgr = nullptr;
     socket_t m_socket = INVALID_SOCKET;
+    bool m_connected = false;    
     bool m_io_handing = false;
     bool m_closed = false;
     int m_ovl_ref = 0;

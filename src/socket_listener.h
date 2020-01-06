@@ -21,12 +21,12 @@ struct socket_listener : public socket_node {
     ~socket_listener();
     bool setup(socket_t fd);
     bool get_remote_ip(std::string& ip) override { return false; }
-    bool update(int64_t now) override;
     void set_accept_callback(const std::function<void(int)>& cb) override { m_accept_cb = cb; }
     void set_error_callback(const std::function<void(const char*)>& cb) override { m_error_cb = cb; }
 
-#ifdef _MSC_VER
+#ifdef _MSC_VER    
     void on_complete(WSAOVERLAPPED* ovl);
+    void start_listen();
     void queue_accept(WSAOVERLAPPED* ovl);
 #endif
 

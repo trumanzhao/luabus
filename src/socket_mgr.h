@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
-#include <thread>
-#include <mutex>
+#include <set>
+#include <list>
 #include "socket_helper.h"
 #include "socket_node.h"
 
@@ -75,6 +75,19 @@ private:
     std::vector<struct kevent> m_events;
     std::vector<socket_node*> m_close_list;
 #endif
+
+    struct timeout_node_t {
+        uint32_t m_token;
+        int64_t m_deadline;
+        bool operator < (const timeout_node_t& other) const {
+            if (m_deadline == other.m_deadline) {
+                return m_token < other.m_token;
+            }
+            return m_deadline < other.m_deadline;
+        }
+    };
+    std::set<timeout_node_t> m_timeout_list;
+    std::list<std::function<void()>> m_delay_calls;
 
     int m_max_count = 0;
     int m_count = 0;
