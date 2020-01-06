@@ -5,6 +5,32 @@
 
 #pragma once
 
+#ifdef _MSC_VER
+#include <Winsock2.h>
+#include <Ws2tcpip.h>
+#include <mswsock.h>
+#include <windows.h>
+#endif
+#ifdef __linux
+#include <sys/epoll.h>
+#endif
+#ifdef __APPLE__
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
+#endif
+#if defined(__linux) || defined(__APPLE__)
+#include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#endif
+
 #if defined(__linux) || defined(__APPLE__)
 #include <errno.h>
 using socket_t = int;

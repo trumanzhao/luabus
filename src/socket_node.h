@@ -9,7 +9,7 @@
 #include "tools.h"
 #include "socket_helper.h"
 
-class socket_mgr_impl;
+class socket_mgr;
 
 struct socket_node {
     socket_node(uint32_t token) : m_token(token) {}
@@ -37,7 +37,7 @@ struct socket_node {
 #endif
 
     uint32_t m_token;
-    socket_mgr_impl* m_mgr = nullptr;
+    socket_mgr* m_mgr = nullptr;
     socket_t m_socket = INVALID_SOCKET;
     bool m_io_handing = false;
     bool m_closed = false;

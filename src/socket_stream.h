@@ -7,13 +7,13 @@
 
 #include "socket_helper.h"
 #include "io_buffer.h"
-#include "socket_mgr_impl.h"
+#include "socket_mgr.h"
 
 struct socket_stream : public socket_node {
 #ifdef _MSC_VER
-    socket_stream(uint32_t token, socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func);
+    socket_stream(uint32_t token, socket_mgr* mgr, LPFN_CONNECTEX connect_func);
 #endif
-    socket_stream(uint32_t token, socket_mgr_impl* mgr);
+    socket_stream(uint32_t token, socket_mgr* mgr);
 
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;

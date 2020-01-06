@@ -7,15 +7,15 @@
 
 #include "socket_helper.h"
 #include "io_buffer.h"
-#include "socket_mgr_impl.h"
+#include "socket_mgr.h"
 
 struct socket_listener : public socket_node {
 #ifdef _MSC_VER
-    socket_listener(uint32_t token, socket_mgr_impl* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func);
+    socket_listener(uint32_t token, socket_mgr* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func);
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-    socket_listener(uint32_t token, socket_mgr_impl* mgr);
+    socket_listener(uint32_t token, socket_mgr* mgr);
 #endif
 
     ~socket_listener();

@@ -27,7 +27,7 @@
 #include <assert.h>
 #include "tools.h"
 #include "var_int.h"
-#include "socket_mgr_impl.h"
+#include "socket_mgr.h"
 #include "socket_stream.h"
 
 #ifdef __linux
@@ -39,7 +39,7 @@ static const int s_send_flag = 0;
 #endif
 
 #ifdef _MSC_VER
-socket_stream::socket_stream(uint32_t token, socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func) : socket_node(token) {
+socket_stream::socket_stream(uint32_t token, socket_mgr* mgr, LPFN_CONNECTEX connect_func) : socket_node(token) {
     mgr->increase_count();
     m_mgr = mgr;
     m_connect_func = connect_func;
@@ -47,7 +47,7 @@ socket_stream::socket_stream(uint32_t token, socket_mgr_impl* mgr, LPFN_CONNECTE
 }
 #endif
 
-socket_stream::socket_stream(uint32_t token, socket_mgr_impl* mgr) : socket_node(token) {
+socket_stream::socket_stream(uint32_t token, socket_mgr* mgr) : socket_node(token) {
     mgr->increase_count();
     m_mgr = mgr;
     m_ip[0] = 0;
