@@ -36,7 +36,7 @@ int lua_socket_mgr::listen(lua_State* L) {
     }
 
     std::string err;
-    int token = m_mgr->listen(err, ip, port);
+    auto token = m_mgr->listen(err, ip, port);
     if (token == 0) {
         lua_pushnil(L);
         lua_pushstring(L, err.c_str());
@@ -60,7 +60,7 @@ int lua_socket_mgr::connect(lua_State* L) {
     }
 
     std::string err;
-    int token = m_mgr->connect(err, ip, port, timeout);
+    auto token = m_mgr->connect(err, ip, port, timeout);
     if (token == 0) {
         lua_pushnil(L);
         lua_pushstring(L, err.c_str());

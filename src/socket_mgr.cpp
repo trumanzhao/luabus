@@ -240,7 +240,7 @@ int socket_mgr::wait(int timeout) {
 	return (int)event_count;
 }
 
-int socket_mgr::listen(std::string& err, const char ip[], int port) {
+uint32_t socket_mgr::listen(std::string& err, const char ip[], int port) {
     int ret = false;
     socket_t fd = INVALID_SOCKET;
     sockaddr_storage addr;
@@ -299,7 +299,7 @@ Exit0:
     return 0;
 }
 
-int socket_mgr::connect(std::string& err, const char node_name[], const char service_name[], int timeout) {
+uint32_t socket_mgr::connect(std::string& err, const char node_name[], const char service_name[], int timeout) {
     if (is_full()) {
         err = "too-many-connection";
         return 0;
@@ -315,7 +315,7 @@ int socket_mgr::connect(std::string& err, const char node_name[], const char ser
     socket_stream* stm = new socket_stream(token, this);
 #endif
 
-    m_delay_calls.push_back([this, token](){
+    m_delay_calls.push_back([this, token]() {
         auto node = (socket_stream*)find_node(token);
         if (node && !node->m_closed) {
             node->try_connect();
