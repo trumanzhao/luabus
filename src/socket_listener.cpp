@@ -73,10 +73,6 @@ bool socket_listener::setup(socket_t fd) {
 
 #ifdef _MSC_VER
 void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
-    m_ovl_ref--;
-    if (m_closed)
-        return;
-
     listen_node* node = CONTAINING_RECORD(ovl, listen_node, ovl);
     assert(node >= m_nodes && node < m_nodes + _countof(m_nodes));
     assert(node->fd != INVALID_SOCKET);
