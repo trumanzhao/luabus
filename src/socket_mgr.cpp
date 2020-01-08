@@ -164,11 +164,11 @@ int socket_mgr::wait(int timeout) {
         auto node = (socket_node*)ev.data.ptr;
 
         node->m_io_handing = true;
-        if (ev.events & EPOLLIN != 0 && !node->m_closed) {
+        if ((ev.events & EPOLLIN) && !node->m_closed) {
             node->on_can_recv();
         }
 
-        if (ev.events & EPOLLOUT != 0 && !node->m_closed) {
+        if ((ev.events & EPOLLOUT) && !node->m_closed) {
             node->on_can_send();
         }        
         node->m_io_handing = false;
