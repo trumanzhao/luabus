@@ -27,7 +27,7 @@ public:
 
     int wait(int timeout);
 
-    uint32_t listen(std::string& err, const char ip[], int port);
+    uint32_t listen(std::string& err, const char ip[], int port, int backlog);
     uint32_t connect(std::string& err, const char node_name[], const char service_name[], int timeout);
 
     void set_send_buffer_size(uint32_t token, size_t size);

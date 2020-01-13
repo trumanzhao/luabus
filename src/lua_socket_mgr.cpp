@@ -28,15 +28,21 @@ bool lua_socket_mgr::setup(lua_State* L, int max_fd) {
 
 int lua_socket_mgr::listen(lua_State* L) {
     const char* ip = lua_tostring(L, 1);
-    int port = (int)lua_tointeger(L, 2);
+    int port = (int)lua_tonumber(L, 2);
+    int backlog = (int)lua_tonumber(L, 3);
+
     if (ip == nullptr || port <= 0) {
         lua_pushnil(L);
         lua_pushstring(L, "invalid param");
         return 2;
     }
 
+    if (backlog <= 0) {
+        backlog = 16;
+    }
+
     std::string err;
-    auto token = m_mgr->listen(err, ip, port);
+    auto token = m_mgr->listen(err, ip, port, backlog);
     if (token == 0) {
         lua_pushnil(L);
         lua_pushstring(L, err.c_str());

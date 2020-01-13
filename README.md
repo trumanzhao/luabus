@@ -29,7 +29,8 @@ socket_mgr.wait(50);
 
 ```lua
 --注意保持listener的生存期,一旦被gc,则端口就自动关了
-listener = mgr.listen("127.0.0.1", 8080);
+--第三个参数为listen的backlog,可以不传,默认16
+listener = mgr.listen("127.0.0.1", 8080, 32);
 
 --设置accept回调
 listener.on_accept = function(stream)

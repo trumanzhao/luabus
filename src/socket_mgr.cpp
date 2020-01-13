@@ -240,7 +240,7 @@ int socket_mgr::wait(int timeout) {
 	return (int)event_count;
 }
 
-uint32_t socket_mgr::listen(std::string& err, const char ip[], int port) {
+uint32_t socket_mgr::listen(std::string& err, const char ip[], int port, int backlog) {
     int ret = false;
     socket_t fd = INVALID_SOCKET;
     sockaddr_storage addr;
@@ -272,7 +272,7 @@ uint32_t socket_mgr::listen(std::string& err, const char ip[], int port) {
     ret = bind(fd, (sockaddr*)&addr, (int)addr_len);
     FAILED_JUMP(ret != SOCKET_ERROR);
 
-    ret = ::listen(fd, 16);
+    ret = ::listen(fd, backlog);
     FAILED_JUMP(ret != SOCKET_ERROR);
 
     if (watch_listen(fd, listener) && listener->setup(fd)) {
