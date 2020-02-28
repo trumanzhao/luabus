@@ -98,8 +98,7 @@ struct io_buffer {
         m_data_end += pop_len;
     }
 
-    BYTE* pop_space(size_t* space_len, size_t pop_len)
-    {
+    BYTE* pop_space(size_t* space_len, size_t pop_len) {
         if (m_buffer == nullptr)
             alloc_buffer();
 

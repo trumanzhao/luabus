@@ -255,8 +255,8 @@ void socket_stream::stream_send(const char* data, size_t data_len) {
     if (m_closed)
         return;
 
-    if (!m_send_buffer->empty()) {
-        if (!m_send_buffer->push_data(data, data_len)) {
+    if (!m_send_buffer.empty()) {
+        if (!m_send_buffer.push_data(data, data_len)) {
             on_error("send-buffer-full");
         }
         return;
@@ -269,7 +269,7 @@ void socket_stream::stream_send(const char* data, size_t data_len) {
 
 #ifdef _MSC_VER
             if (err == WSAEWOULDBLOCK) {
-                if (!m_send_buffer->push_data(data, data_len)) {
+                if (!m_send_buffer.push_data(data, data_len)) {
                     on_error("send-buffer-full");
                     return;
                 }
@@ -288,7 +288,7 @@ void socket_stream::stream_send(const char* data, size_t data_len) {
                 continue;
 
             if (err == EAGAIN) {
-                if (!m_send_buffer->push_data(data, data_len)) {
+                if (!m_send_buffer.push_data(data, data_len)) {
                     on_error("send-buffer-full");
                     return;
                 }
@@ -389,7 +389,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
     size_t total_send = 0;
     while (total_send < max_len && !m_closed) {
         size_t data_len = 0;
-        auto* data = m_send_buffer->peek_data(&data_len);
+        auto* data = m_send_buffer.peek_data(&data_len);
         if (data_len == 0) {
             if (!m_mgr->watch_send(m_socket, this, false)) {
                 on_error("watch-error");
@@ -432,10 +432,10 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
         }
 
         total_send += send_len;
-        m_send_buffer->pop_data((size_t)send_len);
+        m_send_buffer.pop_data((size_t)send_len);
     }
 
-    m_send_buffer->compact(true);
+    m_send_buffer.compact(true);
 
     if (is_eof || max_len == 0) {
         on_error("connection-lost");
@@ -446,7 +446,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
     size_t total_recv = 0;
     while (total_recv < max_len && !m_closed) {
         size_t space_len = 0;
-        auto* space = m_recv_buffer->peek_space(&space_len);
+        auto* space = m_recv_buffer.peek_space(&space_len);
         if (space_len == 0) {
             on_error("package-too-large");
             return;
@@ -486,7 +486,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
         }
 
         total_recv += recv_len;
-        m_recv_buffer->pop_space(recv_len);
+        m_recv_buffer.pop_space(recv_len);
         dispatch_package();
     }
 
@@ -499,7 +499,7 @@ void socket_stream::dispatch_package() {
     while (!m_closed) {
         size_t data_len = 0;
         uint64_t package_size = 0;
-        auto* data = m_recv_buffer->peek_data(&data_len);
+        auto* data = m_recv_buffer.peek_data(&data_len);
         size_t header_len = decode_u64(&package_size, data, data_len);
         if (header_len == 0)
             break;
@@ -509,10 +509,10 @@ void socket_stream::dispatch_package() {
 
         m_package_cb((char*)data + header_len, (size_t)package_size);
 
-        m_recv_buffer->pop_data(header_len + (size_t)package_size);
+        m_recv_buffer.pop_data(header_len + (size_t)package_size);
     }
 
-    m_recv_buffer->compact();
+    m_recv_buffer.compact();
 }
 
 void socket_stream::on_error(const char err[]) {

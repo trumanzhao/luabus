@@ -24,8 +24,8 @@ struct socket_stream : public socket_node {
     void set_package_callback(const std::function<void(char*, size_t)>& cb) override { m_package_cb = cb; }
     void set_error_callback(const std::function<void(const char*)>& cb) override { m_error_cb = cb; }
     void set_connect_callback(const std::function<void(bool, const char*)>& cb) override { m_connect_cb = cb; }
-    void set_send_buffer_size(size_t size) override { m_send_buffer->resize(size); }
-    void set_recv_buffer_size(size_t size) override { m_recv_buffer->resize(size); }
+    void set_send_buffer_size(size_t size) override { m_send_buffer.resize(size); }
+    void set_recv_buffer_size(size_t size) override { m_recv_buffer.resize(size); }
     void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
     void send(const void* data, size_t data_len) override;
     void stream_send(const char* data, size_t data_len);
@@ -46,8 +46,8 @@ struct socket_stream : public socket_node {
     void on_error(const char err[]);
     void on_connect(bool ok, const char reason[]);
 
-    std::shared_ptr<io_buffer> m_recv_buffer = std::make_shared<io_buffer>();
-    std::shared_ptr<io_buffer> m_send_buffer = std::make_shared<io_buffer>();
+    io_buffer m_recv_buffer;
+    io_buffer m_send_buffer;
 
     std::string m_node_name;
     std::string m_service_name;
